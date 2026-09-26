@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getApiUrl } from '../services/api.js';
 
 export default function RuleManagement({ userRole }) {
   const [activeRules, setActiveRules] = useState(null);
@@ -40,18 +41,18 @@ export default function RuleManagement({ userRole }) {
     setErrorMsg('');
     try {
       // 1. Fetch Active Rules
-      const rulesRes = await fetch('/api/routing-rules/active');
+      const rulesRes = await fetch(getApiUrl('/api/routing-rules/active'));
       const rulesData = await rulesRes.json();
       if (rulesRes.ok) setActiveRules(rulesData.activeRules);
 
       // 2. Fetch Change Requests
-      const reqRes = await fetch('/api/rule-change-requests');
+      const reqRes = await fetch(getApiUrl('/api/rule-change-requests'));
       const reqData = await reqRes.json();
       if (reqRes.ok) setRequests(reqData.requests || []);
 
       // 3. Fetch History for Admin
       if (userRole === 'admin') {
-        const histRes = await fetch('/api/routing-rules/history');
+        const histRes = await fetch(getApiUrl('/api/routing-rules/history'));
         const histData = await histRes.json();
         if (histRes.ok) setHistory(histData.history || []);
       }
@@ -85,7 +86,7 @@ export default function RuleManagement({ userRole }) {
     }
 
     try {
-      const response = await fetch('/api/rule-change-requests', {
+      const response = await fetch(getApiUrl('/api/rule-change-requests'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -123,7 +124,7 @@ export default function RuleManagement({ userRole }) {
     setSuccessMsg('');
 
     try {
-      const response = await fetch(`/api/rule-change-requests/${selectedReqForApprove.requestId}/approve`, {
+      const response = await fetch(getApiUrl(`/api/rule-change-requests/${selectedReqForApprove.requestId}/approve`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -155,7 +156,7 @@ export default function RuleManagement({ userRole }) {
     setSuccessMsg('');
 
     try {
-      const response = await fetch(`/api/rule-change-requests/${selectedReqForReject.requestId}/reject`, {
+      const response = await fetch(getApiUrl(`/api/rule-change-requests/${selectedReqForReject.requestId}/reject`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -183,7 +184,7 @@ export default function RuleManagement({ userRole }) {
     setSuccessMsg('');
 
     try {
-      const response = await fetch(`/api/rule-change-requests/${requestId}/withdraw`, {
+      const response = await fetch(getApiUrl(`/api/rule-change-requests/${requestId}/withdraw`), {
         method: 'POST',
         headers: {
           'X-CSRF-Token': getCsrfToken()

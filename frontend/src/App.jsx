@@ -11,6 +11,8 @@ import AdminSystemAlerts from './components/AdminSystemAlerts.jsx';
 import OperatorWorkAlerts from './components/OperatorWorkAlerts.jsx';
 import AuditLogTable from './components/AuditLogTable.jsx';
 
+import { getApiUrl } from './services/api.js';
+
 function MainApp() {
   const { user, loading: authLoading, logout } = useAuth();
   const [authView, setAuthView] = useState('login'); // 'login' or 'register'
@@ -18,7 +20,7 @@ function MainApp() {
   const [selectedParcel, setSelectedParcel] = useState(null);
 
   useEffect(() => {
-    fetch('/api/health')
+    fetch(getApiUrl('/api/health'))
       .then((res) => res.json())
       .then((data) => setHealthStatus(data))
       .catch(() => setHealthStatus({ status: 'offline', database: 'unavailable' }));

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getApiUrl } from '../services/api.js';
 
 export default function BatchUpload() {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -42,7 +43,7 @@ export default function BatchUpload() {
     setBatchResult(null);
 
     try {
-      const response = await fetch('/api/parcels/batch', {
+      const response = await fetch(getApiUrl('/api/parcels/batch'), {
         method: 'POST',
         headers: {
           'X-CSRF-Token': getCsrfToken(),

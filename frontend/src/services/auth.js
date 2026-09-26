@@ -1,3 +1,5 @@
+import { getApiUrl } from './api.js';
+
 let activeCsrfToken = null;
 
 export function setCsrfToken(token) {
@@ -11,7 +13,7 @@ export function getCsrfToken() {
 }
 
 export async function registerUser(userData) {
-  const response = await fetch('/api/auth/register', {
+  const response = await fetch(getApiUrl('/api/auth/register'), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -27,7 +29,7 @@ export async function registerUser(userData) {
 }
 
 export async function loginUser(credentials) {
-  const response = await fetch('/api/auth/login', {
+  const response = await fetch(getApiUrl('/api/auth/login'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(credentials),
@@ -43,7 +45,7 @@ export async function loginUser(credentials) {
 }
 
 export async function logoutUser() {
-  const response = await fetch('/api/auth/logout', {
+  const response = await fetch(getApiUrl('/api/auth/logout'), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -56,7 +58,7 @@ export async function logoutUser() {
 }
 
 export async function getCurrentUser() {
-  const response = await fetch('/api/auth/me');
+  const response = await fetch(getApiUrl('/api/auth/me'));
   if (!response.ok) {
     activeCsrfToken = null;
     return null;
@@ -69,7 +71,7 @@ export async function getCurrentUser() {
 }
 
 export async function requestForgotPassword(identifier) {
-  const response = await fetch('/api/auth/forgot-password', {
+  const response = await fetch(getApiUrl('/api/auth/forgot-password'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ identifier }),
@@ -80,3 +82,4 @@ export async function requestForgotPassword(identifier) {
   }
   return data;
 }
+

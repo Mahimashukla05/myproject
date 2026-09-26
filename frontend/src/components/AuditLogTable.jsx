@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getApiUrl } from '../services/api.js';
 
 export default function AuditLogTable() {
   const [logs, setLogs] = useState([]);
@@ -26,7 +27,7 @@ export default function AuditLogTable() {
       if (actorFilter.trim()) params.append('actorUsername', actorFilter.trim());
       if (roleFilter.trim()) params.append('actorRole', roleFilter.trim());
 
-      const res = await fetch(`/api/admin/audit-logs?${params.toString()}`);
+      const res = await fetch(getApiUrl(`/api/admin/audit-logs?${params.toString()}`));
       const data = await res.json();
 
       if (!res.ok) {
