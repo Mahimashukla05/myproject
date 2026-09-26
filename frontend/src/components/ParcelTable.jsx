@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getApiUrl } from '../services/api.js';
+import { apiFetch } from '../services/api.js';
 
 export default function ParcelTable({ onSelectParcel, userRole }) {
   const [parcels, setParcels] = useState([]);
@@ -29,7 +29,7 @@ export default function ParcelTable({ onSelectParcel, userRole }) {
       if (insuranceFilter) params.append('insuranceStatus', insuranceFilter);
       if (searchId.trim()) params.append('parcelId', searchId.trim());
 
-      const response = await fetch(getApiUrl(`/api/parcels?${params.toString()}`));
+      const response = await apiFetch(`/api/parcels?${params.toString()}`);
       const data = await response.json();
 
       if (!response.ok) {

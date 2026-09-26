@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getApiUrl } from '../services/api.js';
+import { apiFetch } from '../services/api.js';
 
 export default function DashboardMetrics() {
   const [period, setPeriod] = useState('all');
@@ -11,7 +11,7 @@ export default function DashboardMetrics() {
     setLoading(true);
     setErrorMsg('');
     try {
-      const response = await fetch(getApiUrl(`/api/dashboard/summary?period=${selectedPeriod}`));
+      const response = await apiFetch(`/api/dashboard/summary?period=${selectedPeriod}`);
       const data = await response.json();
       if (!response.ok) {
         if (response.status === 503) {

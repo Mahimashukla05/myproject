@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getApiUrl } from '../services/api.js';
+import { apiFetch } from '../services/api.js';
 
 export default function OperatorWorkAlerts() {
   const [alertsData, setAlertsData] = useState(null);
@@ -10,7 +10,7 @@ export default function OperatorWorkAlerts() {
     setLoading(true);
     setErrorMsg('');
     try {
-      const res = await fetch(getApiUrl('/api/operator/alerts'));
+      const res = await apiFetch('/api/operator/alerts');
       const data = await res.json();
       if (!res.ok) {
         setErrorMsg(data.error || 'Failed to fetch operator work alerts');

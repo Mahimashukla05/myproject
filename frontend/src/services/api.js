@@ -1,3 +1,5 @@
+import { getCsrfToken } from './auth.js';
+
 const RAW_BASE = (import.meta.env.VITE_API_BASE_URL || '').trim();
 
 export function getApiUrl(path) {
@@ -25,12 +27,21 @@ export function getApiUrl(path) {
 
 export async function apiFetch(path, options = {}) {
   const url = getApiUrl(path);
+  const method = (options.method || 'GET').toUpperCase();
+  const csrf = typeof getCsrfToken === 'function' ? getCsrfToken() : null;
+
+  const headers = {
+    ...(options.headers || {}),
+  };
+
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) && csrf && !headers['X-CSRF-Token']) {
+    headers['X-CSRF-Token'] = csrf;
+  }
+
   const mergedOptions = {
     credentials: 'include',
     ...options,
-    headers: {
-      ...(options.headers || {}),
-    },
+    headers,
   };
   return fetch(url, mergedOptions);
 }

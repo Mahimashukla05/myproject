@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { apiFetch } from '../services/api.js';
+import { getCsrfToken } from '../services/auth.js';
 
 export default function SingleParcelUpload({ onParcelCreated }) {
   const [formData, setFormData] = useState({
@@ -20,19 +21,6 @@ export default function SingleParcelUpload({ onParcelCreated }) {
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setErrorMsg('');
-  };
-
-  const getCsrfToken = () => {
-    const name = 'csrf_access_token=';
-    const decodedCookies = decodeURIComponent(document.cookie);
-    const ca = decodedCookies.split(';');
-    for (let i = 0; i < ca.length; i++) {
-      let c = ca[i].trim();
-      if (c.indexOf(name) === 0) {
-        return c.substring(name.length, c.length);
-      }
-    }
-    return '';
   };
 
   const handleSubmit = async (e) => {

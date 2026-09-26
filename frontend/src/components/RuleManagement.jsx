@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../services/api.js';
+import { getCsrfToken } from '../services/auth.js';
 
 export default function RuleManagement({ userRole }) {
   const [activeRules, setActiveRules] = useState(null);
@@ -23,19 +24,6 @@ export default function RuleManagement({ userRole }) {
   const [activateConfirmation, setActivateConfirmation] = useState('');
   const [selectedReqForReject, setSelectedReqForReject] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
-
-  const getCsrfToken = () => {
-    const name = 'csrf_access_token=';
-    const decodedCookies = decodeURIComponent(document.cookie);
-    const ca = decodedCookies.split(';');
-    for (let i = 0; i < ca.length; i++) {
-      let c = ca[i].trim();
-      if (c.indexOf(name) === 0) {
-        return c.substring(name.length, c.length);
-      }
-    }
-    return '';
-  };
 
   const fetchData = async () => {
     setLoading(true);

@@ -50,7 +50,7 @@ describe('Phase 4 Frontend Components', () => {
     fireEvent.click(todayBtn);
 
     await waitFor(() => {
-      expect(fetchSpy).toHaveBeenCalledWith(expect.stringContaining('period=today'));
+      expect(fetchSpy).toHaveBeenCalledWith(expect.stringContaining('period=today'), expect.anything());
     });
   });
 
@@ -142,7 +142,7 @@ describe('Phase 4 Frontend Components', () => {
     fireEvent.change(searchInput, { target: { value: 'PCL-SEARCH' } });
 
     await waitFor(() => {
-      expect(fetchSpy).toHaveBeenCalledWith(expect.stringContaining('parcelId=PCL-SEARCH'));
+      expect(fetchSpy).toHaveBeenCalledWith(expect.stringContaining('parcelId=PCL-SEARCH'), expect.anything());
     });
   });
 

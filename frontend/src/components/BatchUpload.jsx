@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { getApiUrl } from '../services/api.js';
+import { apiFetch } from '../services/api.js';
+import { getCsrfToken } from '../services/auth.js';
 
 export default function BatchUpload() {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -13,19 +14,6 @@ export default function BatchUpload() {
       setErrorMsg('');
       setBatchResult(null);
     }
-  };
-
-  const getCsrfToken = () => {
-    const name = 'csrf_access_token=';
-    const decodedCookies = decodeURIComponent(document.cookie);
-    const ca = decodedCookies.split(';');
-    for (let i = 0; i < ca.length; i++) {
-      let c = ca[i].trim();
-      if (c.indexOf(name) === 0) {
-        return c.substring(name.length, c.length);
-      }
-    }
-    return '';
   };
 
   const handleUpload = async (e) => {
@@ -43,10 +31,10 @@ export default function BatchUpload() {
     setBatchResult(null);
 
     try {
-      const response = await fetch(getApiUrl('/api/parcels/batch'), {
+      const response = await apiFetch('/api/parcels/batch', {
         method: 'POST',
         headers: {
-          'X-CSRF-Token': getCsrfToken(),
+          ...(getCsrfToken() ? { 'X-CSRF-Token': getCsrfToken() } : {}),
         },
         body: formData,
       });
