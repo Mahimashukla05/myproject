@@ -40,10 +40,11 @@ Server-side authorization for three defined roles:
 
 ---
 
-## 3. Implemented Architecture Summary (Phases 1 - 5)
+## 3. Implemented Architecture Summary (Phases 1 - 7)
 
 The application implements a clean, layered architecture:
-- **Routes & Controllers**: `auth_routes.py`, `parcel_routes.py`, `batch_routes.py`, `dashboard_routes.py`, `rule_routes.py`.
-- **Business Services**: `auth_service.py`, `parcel_service.py`, `batch_service.py`, `routing_service.py`, `rule_service.py`.
+- **Routes & Controllers**: `auth_routes.py`, `parcel_routes.py`, `batch_routes.py`, `dashboard_routes.py`, `rule_routes.py`, `admin_routes.py`, `operator_routes.py`.
+- **Business Services**: `auth_service.py`, `parcel_service.py`, `batch_service.py`, `routing_service.py`, `rule_service.py`, `alert_service.py`, `dashboard_service.py`, `lifecycle_service.py`.
 - **Data Models**: `UserModel`, `ParcelModel`, `AuditModel`, `RoutingRuleModel`, `RuleChangeRequestModel`.
-- **Frontend Architecture**: React components (`LoginPage`, `RegisterPage`, `DashboardMetrics`, `BatchUpload`, `ParcelTable`, `ParcelDetailModal`, `RuleManagement`), state context (`AuthContext`), and responsive CSS (`index.css`).
+- **Frontend Architecture**: React components (`LoginPage`, `RegisterPage`, `DashboardMetrics`, `BatchUpload`, `ParcelTable`, `ParcelDetailModal`, `RuleManagement`, `AuditLogTable`, `OperatorWorkAlerts`, `AdminSystemAlerts`), state context (`AuthContext`), and responsive CSS (`index.css`).
+- **Production Readiness & Security**: Environment-driven CORS and cookie settings (`HttpOnly`, `Secure`, `SameSite=Lax`), NoSQL injection parameter whitelisting, XML XXE security parsing, login rate-limiting, and deployment configuration for Vercel, Render, and MongoDB Atlas.
