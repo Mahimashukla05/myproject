@@ -150,14 +150,14 @@ def test_operator_cannot_approve_insurance(client):
     assert res.status_code == 403
     assert "Access denied" in res.get_json()["error"]
 
-def test_normal_user_cannot_approve_insurance(client):
-    op_csrf = helper_register_and_login(client, "op_ins_user_test", role="operator")
-    parcel_id = helper_create_high_value_parcel_awaiting_insurance(client, op_csrf)
-
-    user_csrf = helper_register_and_login(client, "user_ins_app", role="user")
-
-    res = client.post(f'/api/parcels/{parcel_id}/insurance/approve', headers={"X-CSRF-Token": user_csrf})
-    assert res.status_code == 403
+def test_normal_user_registration_rejected_insurance(client):
+    res = client.post('/api/auth/register', json={
+        "fullName": "User Ins App", "username": "user_ins_app", "email": "ins_user@example.com",
+        "mobile": "9955443322", "password": "Password123!", "confirmPassword": "Password123!",
+        "role": "user"
+    })
+    assert res.status_code == 400
+    assert "Allowed roles are 'operator' and 'admin'." in res.get_json()["error"]
 
 def test_unauthenticated_cannot_approve_insurance(client):
     res = client.post('/api/parcels/PCL-SOMEID/insurance/approve')
@@ -307,17 +307,11 @@ def test_operator_can_assign_start_processing_and_complete(client):
     r3 = client.post(f'/api/parcels/{parcel_id}/complete', headers={"X-CSRF-Token": op_csrf})
     assert r3.status_code == 200
 
-def test_normal_user_denied_lifecycle_endpoints(client):
-    op_csrf = helper_register_and_login(client, "op_user_denied", role="operator")
-    create_res = client.post('/api/parcels', json={
-        "senderName": "Alice", "senderContact": "123", "receiverName": "Bob", "receiverContact": "456",
-        "origin": "Berlin", "destination": "Munich", "weightKg": 2.0, "valueEur": 100.0
-    }, headers={"X-CSRF-Token": op_csrf})
-    parcel_id = create_res.get_json()["parcel"]["parcelId"]
-    client.post(f'/api/parcels/{parcel_id}/route', headers={"X-CSRF-Token": op_csrf})
-
-    user_csrf = helper_register_and_login(client, "user_denied", role="user")
-
-    # Normal user calls assign -> 403
-    r = client.post(f'/api/parcels/{parcel_id}/assign', headers={"X-CSRF-Token": user_csrf})
-    assert r.status_code == 403
+def test_normal_user_registration_rejected_lifecycle(client):
+    res = client.post('/api/auth/register', json={
+        "fullName": "User Denied", "username": "user_denied", "email": "user_denied@example.com",
+        "mobile": "9955443311", "password": "Password123!", "confirmPassword": "Password123!",
+        "role": "user"
+    })
+    assert res.status_code == 400
+    assert "Allowed roles are 'operator' and 'admin'." in res.get_json()["error"]

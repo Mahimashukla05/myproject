@@ -47,8 +47,8 @@ def get_change_request(request_id):
 @roles_required('admin')
 def approve_change_request(request_id):
     data = request.get_json() or {}
-    confirm = data.get('confirm', False)
-    res, status_code = RuleService.approve_change_request(request_id, g.current_user, confirm=confirm)
+    confirmation = data.get('confirmation') if 'confirmation' in data else data.get('confirm')
+    res, status_code = RuleService.approve_change_request(request_id, g.current_user, confirmation=confirmation)
     return jsonify(res), status_code
 
 @rule_bp.route('/rule-change-requests/<request_id>/reject', methods=['POST'])

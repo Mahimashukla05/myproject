@@ -21,12 +21,12 @@ class ParcelModel:
         
         doc = {
             "parcelId": str(parcel_data["parcelId"]),
-            "senderName": str(parcel_data["senderName"]).strip(),
-            "senderContact": str(parcel_data["senderContact"]).strip(),
-            "receiverName": str(parcel_data["receiverName"]).strip(),
-            "receiverContact": str(parcel_data["receiverContact"]).strip(),
-            "origin": str(parcel_data["origin"]).strip(),
-            "destination": str(parcel_data["destination"]).strip(),
+            "senderName": str(parcel_data["senderName"]).strip() if parcel_data.get("senderName") is not None else None,
+            "senderContact": str(parcel_data["senderContact"]).strip() if parcel_data.get("senderContact") is not None else None,
+            "receiverName": str(parcel_data["receiverName"]).strip() if parcel_data.get("receiverName") is not None else None,
+            "receiverContact": str(parcel_data["receiverContact"]).strip() if parcel_data.get("receiverContact") is not None else None,
+            "origin": str(parcel_data["origin"]).strip() if parcel_data.get("origin") is not None else None,
+            "destination": str(parcel_data["destination"]).strip() if parcel_data.get("destination") is not None else None,
             "weightKg": float(parcel_data["weightKg"]),
             "valueEur": float(parcel_data["valueEur"]),
             "department": None,
@@ -189,9 +189,9 @@ class ParcelModel:
             limit = 20
 
         q = {}
-        # Role-based scoping: Normal Users are strictly limited to their own submitted parcels
-        if role not in ['admin', 'operator'] and user_id:
-            q["submittedBy"] = str(user_id)
+        # Role-based scoping: only Admin and Operator are valid roles
+        if role not in ['admin', 'operator']:
+            return {"items": [], "page": 1, "limit": limit, "total": 0, "totalPages": 1}
 
         if query_filters and isinstance(query_filters, dict):
             if "status" in query_filters and query_filters["status"]:

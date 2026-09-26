@@ -1,4 +1,4 @@
-import { getApiUrl } from './api.js';
+import { apiFetch } from './api.js';
 
 let activeCsrfToken = null;
 
@@ -13,7 +13,7 @@ export function getCsrfToken() {
 }
 
 export async function registerUser(userData) {
-  const response = await fetch(getApiUrl('/api/auth/register'), {
+  const response = await apiFetch('/api/auth/register', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -29,7 +29,7 @@ export async function registerUser(userData) {
 }
 
 export async function loginUser(credentials) {
-  const response = await fetch(getApiUrl('/api/auth/login'), {
+  const response = await apiFetch('/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(credentials),
@@ -45,7 +45,7 @@ export async function loginUser(credentials) {
 }
 
 export async function logoutUser() {
-  const response = await fetch(getApiUrl('/api/auth/logout'), {
+  const response = await apiFetch('/api/auth/logout', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -58,7 +58,7 @@ export async function logoutUser() {
 }
 
 export async function getCurrentUser() {
-  const response = await fetch(getApiUrl('/api/auth/me'));
+  const response = await apiFetch('/api/auth/me');
   if (!response.ok) {
     activeCsrfToken = null;
     return null;
@@ -71,7 +71,7 @@ export async function getCurrentUser() {
 }
 
 export async function requestForgotPassword(identifier) {
-  const response = await fetch(getApiUrl('/api/auth/forgot-password'), {
+  const response = await apiFetch('/api/auth/forgot-password', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ identifier }),

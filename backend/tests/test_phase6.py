@@ -172,10 +172,13 @@ def test_audit_logs_rbac(client):
     resp = client.get('/api/admin/audit-logs')
     assert resp.status_code == 401
 
-    # Normal user -> 403
-    helper_register_and_login(client, "user1", "user")
-    resp = client.get('/api/admin/audit-logs')
-    assert resp.status_code == 403
+    # Normal user registration -> 400
+    user_reg = client.post('/api/auth/register', json={
+        "fullName": "User 1", "username": "user1", "email": "user1@example.com",
+        "mobile": "9911223344", "password": "Password123!", "confirmPassword": "Password123!",
+        "role": "user"
+    })
+    assert user_reg.status_code == 400
 
     # Operator -> 403
     helper_register_and_login(client, "operator1", "operator")
@@ -418,10 +421,13 @@ def test_operator_alerts_scoping_and_content(client):
     assert data1["batchAlertsSummary"]["partialFailures"] == 1
     assert data1["batchAlertsSummary"]["formatErrors"] == 0
 
-    # Normal user view -> 403
-    helper_register_and_login(client, "user1", "user")
-    resp = client.get('/api/operator/alerts')
-    assert resp.status_code == 403
+    # Normal user registration -> 400
+    user_reg = client.post('/api/auth/register', json={
+        "fullName": "User 1", "username": "user1_op_alerts", "email": "user1_op_alerts@example.com",
+        "mobile": "9911223366", "password": "Password123!", "confirmPassword": "Password123!",
+        "role": "user"
+    })
+    assert user_reg.status_code == 400
 
     # Admin user view -> 403 (strictly Operator-only endpoint)
     helper_register_and_login(client, "admin1", "admin")
@@ -437,9 +443,12 @@ def test_admin_alerts_rbac(client):
     resp = client.get('/api/admin/alerts')
     assert resp.status_code == 401
 
-    helper_register_and_login(client, "user1", "user")
-    resp = client.get('/api/admin/alerts')
-    assert resp.status_code == 403
+    user_reg = client.post('/api/auth/register', json={
+        "fullName": "User 1", "username": "user1_alerts", "email": "user1_alerts@example.com",
+        "mobile": "9911223355", "password": "Password123!", "confirmPassword": "Password123!",
+        "role": "user"
+    })
+    assert user_reg.status_code == 400
 
     helper_register_and_login(client, "operator1", "operator")
     resp = client.get('/api/admin/alerts')

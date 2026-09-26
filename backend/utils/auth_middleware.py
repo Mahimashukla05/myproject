@@ -47,7 +47,13 @@ def login_required(f):
             session.clear()
             logger.warning(f"Invalid or inactive session for user_id {user_id}")
             return jsonify({"error": "Session invalid or expired"}), 401
-        
+
+        user_role = str(user.get("role", "")).lower()
+        if user_role not in ["admin", "operator"]:
+            session.clear()
+            logger.warning(f"Access attempt by user '{user.get('username')}' with unsupported role '{user_role}'")
+            return jsonify({"error": "Access denied. Account role is not supported."}), 403
+
         g.current_user = user
         return f(*args, **kwargs)
     return decorated_function
@@ -70,11 +76,15 @@ def roles_required(*allowed_roles):
                 session.clear()
                 return jsonify({"error": "Session invalid or expired"}), 401
 
-            g.current_user = user
-            user_role = user.get("role", "user")
+            user_role = str(user.get("role", "")).lower()
+            if user_role not in ["admin", "operator"]:
+                session.clear()
+                logger.warning(f"Access attempt to {request.path} by user '{user.get('username')}' with unsupported role '{user_role}'")
+                return jsonify({"error": "Access denied. Account role is not supported."}), 403
 
+            g.current_user = user
             allowed_list = [r.lower() for r in allowed_roles]
-            if user_role.lower() not in allowed_list:
+            if user_role not in allowed_list:
                 logger.warning(
                     f"Forbidden access attempt to {request.path} by user '{user.get('username')}' "
                     f"with role '{user_role}'. Required roles: {allowed_list}"

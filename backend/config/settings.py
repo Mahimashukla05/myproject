@@ -17,8 +17,8 @@ class Config:
 
     # Session & Security Cookie Settings
     SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SAMESITE = 'Lax'
     SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "False").lower() == "true" or (os.getenv("FLASK_ENV", "development") == "production")
+    SESSION_COOKIE_SAMESITE = 'None' if SESSION_COOKIE_SECURE else 'Lax'
     PERMANENT_SESSION_LIFETIME = timedelta(hours=2)
 
     # Batch Upload Settings

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getApiUrl } from '../services/api.js';
+import { apiFetch } from '../services/api.js';
 
 export default function RuleManagement({ userRole }) {
   const [activeRules, setActiveRules] = useState(null);
@@ -20,6 +20,7 @@ export default function RuleManagement({ userRole }) {
 
   // Admin Modal State
   const [selectedReqForApprove, setSelectedReqForApprove] = useState(null);
+  const [activateConfirmation, setActivateConfirmation] = useState('');
   const [selectedReqForReject, setSelectedReqForReject] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
 
@@ -41,18 +42,18 @@ export default function RuleManagement({ userRole }) {
     setErrorMsg('');
     try {
       // 1. Fetch Active Rules
-      const rulesRes = await fetch(getApiUrl('/api/routing-rules/active'));
+      const rulesRes = await apiFetch('/api/routing-rules/active');
       const rulesData = await rulesRes.json();
       if (rulesRes.ok) setActiveRules(rulesData.activeRules);
 
       // 2. Fetch Change Requests
-      const reqRes = await fetch(getApiUrl('/api/rule-change-requests'));
+      const reqRes = await apiFetch('/api/rule-change-requests');
       const reqData = await reqRes.json();
       if (reqRes.ok) setRequests(reqData.requests || []);
 
       // 3. Fetch History for Admin
       if (userRole === 'admin') {
-        const histRes = await fetch(getApiUrl('/api/routing-rules/history'));
+        const histRes = await apiFetch('/api/routing-rules/history');
         const histData = await histRes.json();
         if (histRes.ok) setHistory(histData.history || []);
       }
@@ -86,7 +87,7 @@ export default function RuleManagement({ userRole }) {
     }
 
     try {
-      const response = await fetch(getApiUrl('/api/rule-change-requests'), {
+      const response = await apiFetch('/api/rule-change-requests', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -120,17 +121,21 @@ export default function RuleManagement({ userRole }) {
 
   const handleApprove = async () => {
     if (!selectedReqForApprove) return;
+    if (activateConfirmation !== 'ACTIVATE') {
+      setErrorMsg('Explicit confirmation "ACTIVATE" is required.');
+      return;
+    }
     setErrorMsg('');
     setSuccessMsg('');
 
     try {
-      const response = await fetch(getApiUrl(`/api/rule-change-requests/${selectedReqForApprove.requestId}/approve`), {
+      const response = await apiFetch(`/api/rule-change-requests/${selectedReqForApprove.requestId}/approve`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-CSRF-Token': getCsrfToken()
         },
-        body: JSON.stringify({ confirm: true })
+        body: JSON.stringify({ confirmation: activateConfirmation })
       });
 
       const data = await response.json();
@@ -139,6 +144,7 @@ export default function RuleManagement({ userRole }) {
       } else {
         setSuccessMsg(`Request '${selectedReqForApprove.requestId}' approved and activated Rule Version ${data.activeRuleVersion.version}!`);
         setSelectedReqForApprove(null);
+        setActivateConfirmation('');
         fetchData();
       }
     } catch (err) {
@@ -156,7 +162,7 @@ export default function RuleManagement({ userRole }) {
     setSuccessMsg('');
 
     try {
-      const response = await fetch(getApiUrl(`/api/rule-change-requests/${selectedReqForReject.requestId}/reject`), {
+      const response = await apiFetch(`/api/rule-change-requests/${selectedReqForReject.requestId}/reject`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -184,7 +190,7 @@ export default function RuleManagement({ userRole }) {
     setSuccessMsg('');
 
     try {
-      const response = await fetch(getApiUrl(`/api/rule-change-requests/${requestId}/withdraw`), {
+      const response = await apiFetch(`/api/rule-change-requests/${requestId}/withdraw`, {
         method: 'POST',
         headers: {
           'X-CSRF-Token': getCsrfToken()
@@ -365,7 +371,7 @@ export default function RuleManagement({ userRole }) {
                   <td style={{ padding: '0.5rem' }}>
                     {userRole === 'admin' && r.status === 'PENDING' && (
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button className="btn btn-primary" style={{ width: 'auto', padding: '0.25rem 0.5rem', fontSize: '0.8rem' }} onClick={() => setSelectedReqForApprove(r)}>Approve</button>
+                        <button className="btn btn-primary" style={{ width: 'auto', padding: '0.25rem 0.5rem', fontSize: '0.8rem' }} onClick={() => { setSelectedReqForApprove(r); setActivateConfirmation(''); }}>Approve</button>
                         <button className="btn btn-secondary" style={{ width: 'auto', padding: '0.25rem 0.5rem', fontSize: '0.8rem', color: '#991b1b' }} onClick={() => setSelectedReqForReject(r)}>Reject</button>
                       </div>
                     )}
@@ -412,10 +418,20 @@ export default function RuleManagement({ userRole }) {
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
           <div className="card" style={{ width: '90%', maxWidth: '500px', backgroundColor: '#fff', padding: '1.5rem', borderRadius: '8px' }}>
             <h3>Confirm Rule Activation</h3>
-            <p>Are you sure you want to approve request <strong>{selectedReqForApprove.requestId}</strong> and activate a new rule version?</p>
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
-              <button className="btn btn-secondary" style={{ width: 'auto' }} onClick={() => setSelectedReqForApprove(null)}>Cancel</button>
-              <button className="btn btn-primary" style={{ width: 'auto' }} onClick={handleApprove}>Confirm & Activate</button>
+            <p>To approve request <strong>{selectedReqForApprove.requestId}</strong> and activate a new rule version, type <strong>ACTIVATE</strong> below:</p>
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.85rem', fontWeight: 600 }}>Type ACTIVATE to confirm rule activation:</label>
+              <input
+                type="text"
+                value={activateConfirmation}
+                onChange={(e) => setActivateConfirmation(e.target.value)}
+                placeholder="ACTIVATE"
+                style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+              <button className="btn btn-secondary" style={{ width: 'auto' }} onClick={() => { setSelectedReqForApprove(null); setActivateConfirmation(''); }}>Cancel</button>
+              <button className="btn btn-primary" style={{ width: 'auto' }} disabled={activateConfirmation !== 'ACTIVATE'} onClick={handleApprove}>Confirm & Activate</button>
             </div>
           </div>
         </div>

@@ -11,16 +11,18 @@ import AdminSystemAlerts from './components/AdminSystemAlerts.jsx';
 import OperatorWorkAlerts from './components/OperatorWorkAlerts.jsx';
 import AuditLogTable from './components/AuditLogTable.jsx';
 
-import { getApiUrl } from './services/api.js';
+import SingleParcelUpload from './components/SingleParcelUpload.jsx';
+import { apiFetch } from './services/api.js';
 
 function MainApp() {
   const { user, loading: authLoading, logout } = useAuth();
   const [authView, setAuthView] = useState('login'); // 'login' or 'register'
   const [healthStatus, setHealthStatus] = useState({ status: 'connecting', database: 'unknown' });
   const [selectedParcel, setSelectedParcel] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    fetch(getApiUrl('/api/health'))
+    apiFetch('/api/health')
       .then((res) => res.json())
       .then((data) => setHealthStatus(data))
       .catch(() => setHealthStatus({ status: 'offline', database: 'unavailable' }));
@@ -86,11 +88,12 @@ function MainApp() {
               <>
                 {isAdmin && <AdminSystemAlerts />}
                 {isOperator && <OperatorWorkAlerts />}
-                {isAdminOrOperator && <DashboardMetrics />}
+                {isAdminOrOperator && <DashboardMetrics key={`dash-${refreshKey}`} />}
+                {isOperator && <SingleParcelUpload onParcelCreated={() => setRefreshKey((k) => k + 1)} />}
                 {isAdminOrOperator && <BatchUpload />}
                 {isAdminOrOperator && <RuleManagement userRole={user.role} />}
                 
-                <ParcelTable userRole={user.role} onSelectParcel={(p) => setSelectedParcel(p)} />
+                <ParcelTable key={`table-${refreshKey}`} userRole={user.role} onSelectParcel={(p) => setSelectedParcel(p)} />
                 {isAdmin && <AuditLogTable />}
 
                 {selectedParcel && (

@@ -10,7 +10,7 @@ export default function RegisterPage({ onNavigateLogin }) {
     mobile: '',
     password: '',
     confirmPassword: '',
-    role: 'user',
+    role: 'operator',
     adminKey: '',
   });
   const [loading, setLoading] = useState(false);
@@ -132,7 +132,6 @@ export default function RegisterPage({ onNavigateLogin }) {
         <div className="form-group">
           <label htmlFor="role">Account Role *</label>
           <select id="role" name="role" value={formData.role} onChange={handleChange}>
-            <option value="user">Normal User</option>
             <option value="operator">Operator</option>
             <option value="admin">Admin</option>
           </select>

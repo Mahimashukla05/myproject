@@ -264,7 +264,7 @@ def test_14_admin_can_activate_rules(client):
     req_id = req_res.get_json()["request"]["requestId"]
 
     admin_csrf = helper_login_user(client, "admin_rules_act")
-    app_res = client.post(f'/api/rule-change-requests/{req_id}/approve', json={"confirm": True}, headers={"X-CSRF-Token": admin_csrf})
+    app_res = client.post(f'/api/rule-change-requests/{req_id}/approve', json={"confirmation": "ACTIVATE"}, headers={"X-CSRF-Token": admin_csrf})
     assert app_res.status_code == 200
     assert app_res.get_json()["activeRuleVersion"]["version"] >= 2
 
@@ -278,14 +278,18 @@ def test_15_operator_can_view_active_rules(client):
 # --- 16. Operator Cannot Directly Modify/Activate Rules ---
 def test_16_operator_cannot_approve(client):
     op_csrf = helper_register_and_login(client, "op_no_approve", role="operator")
-    res = client.post('/api/rule-change-requests/RCR-123456/approve', json={"confirm": True}, headers={"X-CSRF-Token": op_csrf})
+    res = client.post('/api/rule-change-requests/RCR-123456/approve', json={"confirmation": "ACTIVATE"}, headers={"X-CSRF-Token": op_csrf})
     assert res.status_code == 403
 
-# --- 17. Normal User Gets 403 ---
-def test_17_normal_user_gets_403(client):
-    user_csrf = helper_register_and_login(client, "user_rules_denied", role="user")
-    res = client.get('/api/routing-rules/active', headers={"X-CSRF-Token": user_csrf})
-    assert res.status_code == 403
+# --- 17. Normal User Registration Rejected ---
+def test_17_normal_user_registration_rejected(client):
+    res = client.post('/api/auth/register', json={
+        "fullName": "User Role", "username": "user_rules_denied", "email": "user_denied@example.com",
+        "mobile": "9988776655", "password": "Password123!", "confirmPassword": "Password123!",
+        "role": "user"
+    })
+    assert res.status_code == 400
+    assert "Allowed roles are 'operator' and 'admin'." in res.get_json()["error"]
 
 # --- 18. Unauthenticated Gets 401 ---
 def test_18_unauthenticated_gets_401(client):
@@ -302,7 +306,7 @@ def test_19_activating_new_version_preserves_previous_version(client):
     }, headers={"X-CSRF-Token": op_csrf}).get_json()["request"]["requestId"]
 
     admin_csrf = helper_login_user(client, "admin_ver_pres")
-    client.post(f'/api/rule-change-requests/{req}/approve', json={"confirm": True}, headers={"X-CSRF-Token": admin_csrf})
+    client.post(f'/api/rule-change-requests/{req}/approve', json={"confirmation": "ACTIVATE"}, headers={"X-CSRF-Token": admin_csrf})
 
     hist_res = client.get('/api/routing-rules/history', headers={"X-CSRF-Token": admin_csrf})
     assert hist_res.status_code == 200
@@ -430,7 +434,7 @@ def test_29_admin_can_approve_valid_request(client):
     req_id = req_res.get_json()["request"]["requestId"]
 
     admin_csrf = helper_register_and_login(client, "admin_valid_approver", role="admin")
-    res = client.post(f'/api/rule-change-requests/{req_id}/approve', json={"confirm": True}, headers={"X-CSRF-Token": admin_csrf})
+    res = client.post(f'/api/rule-change-requests/{req_id}/approve', json={"confirmation": "ACTIVATE"}, headers={"X-CSRF-Token": admin_csrf})
     assert res.status_code == 200
     assert res.get_json()["request"]["status"] == "APPROVED"
 
@@ -446,7 +450,7 @@ def test_30_admin_approval_creates_new_version(client):
     req_id = req_res.get_json()["request"]["requestId"]
 
     admin_csrf = helper_register_and_login(client, "admin_ver_approver", role="admin")
-    client.post(f'/api/rule-change-requests/{req_id}/approve', json={"confirm": True}, headers={"X-CSRF-Token": admin_csrf})
+    client.post(f'/api/rule-change-requests/{req_id}/approve', json={"confirmation": "ACTIVATE"}, headers={"X-CSRF-Token": admin_csrf})
 
     active_after = RoutingRuleModel.get_active_rules()["version"]
     assert active_after == active_before + 1
@@ -461,7 +465,7 @@ def test_31_admin_approval_activates_new_version(client):
     req_id = req_res.get_json()["request"]["requestId"]
 
     admin_csrf = helper_register_and_login(client, "admin_act_app", role="admin")
-    client.post(f'/api/rule-change-requests/{req_id}/approve', json={"confirm": True}, headers={"X-CSRF-Token": admin_csrf})
+    client.post(f'/api/rule-change-requests/{req_id}/approve', json={"confirmation": "ACTIVATE"}, headers={"X-CSRF-Token": admin_csrf})
 
     active = RoutingRuleModel.get_active_rules()
     assert active["insuranceRule"]["thresholdEur"] == 600.0
@@ -476,7 +480,7 @@ def test_32_admin_approval_creates_audit_log(client):
     req_id = req_res.get_json()["request"]["requestId"]
 
     admin_csrf = helper_register_and_login(client, "admin_audit_app", role="admin")
-    client.post(f'/api/rule-change-requests/{req_id}/approve', json={"confirm": True}, headers={"X-CSRF-Token": admin_csrf})
+    client.post(f'/api/rule-change-requests/{req_id}/approve', json={"confirmation": "ACTIVATE"}, headers={"X-CSRF-Token": admin_csrf})
 
     logs = AuditModel.get_all_logs()
     actions = [l["action"] for l in logs]
@@ -535,21 +539,24 @@ def test_35_rejection_creates_audit_log(client):
 # --- 36. Operator Cannot Approve ---
 def test_36_operator_cannot_approve(client):
     op_csrf = helper_register_and_login(client, "op_no_app", role="operator")
-    res = client.post('/api/rule-change-requests/RCR-999999/approve', json={"confirm": True}, headers={"X-CSRF-Token": op_csrf})
+    res = client.post('/api/rule-change-requests/RCR-999999/approve', json={"confirmation": "ACTIVATE"}, headers={"X-CSRF-Token": op_csrf})
     assert res.status_code == 403
 
-# --- 37. Normal User Gets 403 ---
-def test_37_normal_user_gets_403(client):
-    user_csrf = helper_register_and_login(client, "user_rcr_denied", role="user")
-    res = client.get('/api/rule-change-requests', headers={"X-CSRF-Token": user_csrf})
-    assert res.status_code == 403
+# --- 37. Normal User Registration Rejected ---
+def test_37_normal_user_registration_rejected(client):
+    res = client.post('/api/auth/register', json={
+        "fullName": "User Role 2", "username": "user_rcr_denied", "email": "user_rcr_denied@example.com",
+        "mobile": "9988776644", "password": "Password123!", "confirmPassword": "Password123!",
+        "role": "user"
+    })
+    assert res.status_code == 400
+    assert "Allowed roles are 'operator' and 'admin'." in res.get_json()["error"]
 
 # --- 38. Arbitrary MongoDB Operators Are Rejected ---
 def test_38_arbitrary_mongodb_operators_rejected(client):
     admin_csrf = helper_register_and_login(client, "admin_nosql_check", role="admin")
     res = client.get('/api/rule-change-requests?status={$gt:""}', headers={"X-CSRF-Token": admin_csrf})
     assert res.status_code == 200
-    # NoSQL query injection must be sanitized string, not evaluated as object filter
 
 # --- 39. Client Cannot Forge Actor Identity ---
 def test_39_client_cannot_forge_actor_identity(client):
@@ -564,7 +571,7 @@ def test_39_client_cannot_forge_actor_identity(client):
     assert req["requestedByUsername"] != "fake_admin"
     assert req["requestedByUsername"] == "op_forge_check"
 
-# --- 40. Sensitive Activation Requires Explicit Confirmation ---
+# --- 40. Sensitive Activation Requires Exact ACTIVATE Confirmation ---
 def test_40_sensitive_activation_requires_explicit_confirmation(client):
     op_csrf = helper_register_and_login(client, "op_noconf_req", role="operator")
     req_res = client.post('/api/rule-change-requests', json={
@@ -574,9 +581,12 @@ def test_40_sensitive_activation_requires_explicit_confirmation(client):
     req_id = req_res.get_json()["request"]["requestId"]
 
     admin_csrf = helper_register_and_login(client, "admin_noconf_app", role="admin")
-    res = client.post(f'/api/rule-change-requests/{req_id}/approve', json={"confirm": False}, headers={"X-CSRF-Token": admin_csrf})
-    assert res.status_code == 400
-    assert "Explicit confirmation" in res.get_json()["error"]
+    res_wrong = client.post(f'/api/rule-change-requests/{req_id}/approve', json={"confirmation": "activate"}, headers={"X-CSRF-Token": admin_csrf})
+    assert res_wrong.status_code == 400
+    assert "Explicit confirmation 'ACTIVATE' (exact casing) is required" in res_wrong.get_json()["error"]
+
+    res_ok = client.post(f'/api/rule-change-requests/{req_id}/approve', json={"confirmation": "ACTIVATE"}, headers={"X-CSRF-Token": admin_csrf})
+    assert res_ok.status_code == 200
 
 # --- 41. Invalid Rule Configuration Cannot Be Activated ---
 def test_41_invalid_rule_configuration_cannot_be_activated(client):
@@ -584,12 +594,12 @@ def test_41_invalid_rule_configuration_cannot_be_activated(client):
     req_res = client.post('/api/rule-change-requests', json={
         "action": "MODIFY", "category": "DEPARTMENT", "targetDepartment": "MAIL",
         "reason": "Bad threshold overlap",
-        "proposedChange": {"department": "MAIL", "minWeight": 0.0, "minOp": "GT", "maxWeight": 5.0, "maxOp": "LTE"} # Overlaps with REGULAR (1.0 to 10.0)
+        "proposedChange": {"department": "MAIL", "minWeight": 0.0, "minOp": "GT", "maxWeight": 5.0, "maxOp": "LTE"}
     }, headers={"X-CSRF-Token": op_csrf})
     req_id = req_res.get_json()["request"]["requestId"]
 
     admin_csrf = helper_register_and_login(client, "admin_bad_rule_app", role="admin")
-    res = client.post(f'/api/rule-change-requests/{req_id}/approve', json={"confirm": True}, headers={"X-CSRF-Token": admin_csrf})
+    res = client.post(f'/api/rule-change-requests/{req_id}/approve', json={"confirmation": "ACTIVATE"}, headers={"X-CSRF-Token": admin_csrf})
     assert res.status_code == 400
     assert "Invalid resulting rule set" in res.get_json()["error"]
 

@@ -131,7 +131,7 @@ class RuleService:
         role = current_user.get("role", "user")
         user_id = str(current_user.get("_id") or current_user.get("id"))
 
-        if role == "user":
+        if role not in ["admin", "operator"]:
             return {"success": False, "error": "Access denied."}, 403
 
         filters = {}
@@ -150,7 +150,7 @@ class RuleService:
         role = current_user.get("role", "user")
         user_id = str(current_user.get("_id") or current_user.get("id"))
 
-        if role == "user":
+        if role not in ["admin", "operator"]:
             return {"success": False, "error": "Access denied."}, 403
 
         req = RuleChangeRequestModel.find_by_request_id(request_id)
@@ -163,16 +163,20 @@ class RuleService:
         return {"success": True, "request": req}, 200
 
     @classmethod
-    def approve_change_request(cls, request_id, current_user, confirm=False):
-        role = current_user.get("role", "user")
+    def approve_change_request(cls, request_id, current_user, confirmation=None, confirm=None):
+        role = current_user.get("role", "")
         user_id = str(current_user.get("_id") or current_user.get("id"))
         username = current_user.get("username", "admin")
 
         if role != "admin":
             return {"success": False, "error": "Access denied. Admin role required."}, 403
 
-        if not confirm:
-            return {"success": False, "error": "Explicit confirmation parameter 'confirm: true' is required to activate a new rule version."}, 400
+        conf_val = confirmation if confirmation is not None else confirm
+        if not isinstance(conf_val, str) or conf_val != "ACTIVATE":
+            return {
+                "success": False,
+                "error": "Explicit confirmation 'ACTIVATE' (exact casing) is required to activate a new rule version."
+            }, 400
 
         req = RuleChangeRequestModel.find_by_request_id(request_id)
         if not req:

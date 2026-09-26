@@ -122,15 +122,15 @@ class ParcelService:
             return {"success": False, "error": f"Parcel with ID '{parcel_id}' not found."}, 404
 
         if current_user and isinstance(current_user, dict):
-            role = current_user.get("role", "user")
+            role = current_user.get("role", "")
             user_id = str(current_user.get("_id") or current_user.get("id"))
-            if role not in ["admin", "operator"] and str(doc.get("submittedBy")) != user_id:
-                return {"success": False, "error": "Access denied. You can only view your own parcels."}, 403
+            if role not in ["admin", "operator"]:
+                return {"success": False, "error": "Access denied."}, 403
 
         return {"success": True, "parcel": ParcelModel.to_dict(doc)}, 200
 
     @classmethod
-    def get_paginated_parcels(cls, query_filters=None, user_id=None, role='admin', page=1, limit=20, sort_field='-submittedAt'):
+    def get_paginated_parcels(cls, query_filters=None, user_id=None, role='operator', page=1, limit=20, sort_field='-submittedAt'):
         result = ParcelModel.get_paginated_parcels(
             query_filters=query_filters,
             user_id=user_id,

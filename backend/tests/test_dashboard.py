@@ -140,11 +140,15 @@ def test_operator_can_access_dashboard(client):
     assert res.status_code == 200
     assert res.get_json()["success"] is True
 
-# --- 3. Normal User Gets 403 ---
-def test_normal_user_gets_403_on_dashboard(client):
-    csrf = helper_register_and_login(client, "normal_dash_user", role="user")
-    res = client.get('/api/dashboard/summary', headers={"X-CSRF-Token": csrf})
-    assert res.status_code == 403
+# --- 3. Normal User Registration Rejected ---
+def test_normal_user_registration_rejected(client):
+    res = client.post('/api/auth/register', json={
+        "fullName": "Normal User", "username": "normal_dash_user", "email": "dash_user@example.com",
+        "mobile": "9966554433", "password": "Password123!", "confirmPassword": "Password123!",
+        "role": "user"
+    })
+    assert res.status_code == 400
+    assert "Allowed roles are 'operator' and 'admin'." in res.get_json()["error"]
 
 # --- 4. Unauthenticated Gets 401 ---
 def test_unauthenticated_gets_401_on_dashboard(client):
@@ -302,38 +306,15 @@ def test_operator_can_see_all_parcels(client):
     assert res.status_code == 200
     assert res.get_json()["total"] >= 1
 
-# --- 17. Normal User Sees Only Own Parcels ---
-def test_normal_user_sees_only_own_parcels(client):
-    # Create parcel by operator
-    op_csrf = helper_register_and_login(client, "op_creator", role="operator")
-    client.post('/api/parcels', json={
-        "senderName": "A", "senderContact": "123", "receiverName": "B", "receiverContact": "456",
-        "origin": "X", "destination": "Y", "weightKg": 1.0, "valueEur": 10
-    }, headers={"X-CSRF-Token": op_csrf})
-
-    # Log in as normal user
-    user_csrf = helper_register_and_login(client, "user_scoped", role="user")
-    res = client.get('/api/parcels', headers={"X-CSRF-Token": user_csrf})
-    assert res.status_code == 200
-    items = res.get_json()["items"]
-    # Normal user should see 0 parcels because they didn't submit the operator's parcel
-    assert len(items) == 0
-
-# --- 18. Normal User Cannot Retrieve Another User Parcel Through Filters ---
-def test_normal_user_cannot_retrieve_another_user_parcel_through_filters(client):
-    op_csrf = helper_register_and_login(client, "op_secret_owner", role="operator")
-    create_res = client.post('/api/parcels', json={
-        "senderName": "A", "senderContact": "123", "receiverName": "B", "receiverContact": "456",
-        "origin": "X", "destination": "Y", "weightKg": 1.0, "valueEur": 10
-    }, headers={"X-CSRF-Token": op_csrf})
-    target_id = create_res.get_json()["parcel"]["parcelId"]
-
-    user_csrf = helper_register_and_login(client, "user_hacker", role="user")
-    # Attempt to bypass filter by querying target_id
-    res = client.get(f'/api/parcels?parcelId={target_id}', headers={"X-CSRF-Token": user_csrf})
-    assert res.status_code == 200
-    items = res.get_json()["items"]
-    assert len(items) == 0
+# --- 17 & 18. Normal User Role Registration Rejected ---
+def test_normal_user_role_registration_rejected(client):
+    res1 = client.post('/api/auth/register', json={
+        "fullName": "User Scoped", "username": "user_scoped", "email": "scoped@example.com",
+        "mobile": "9966554422", "password": "Password123!", "confirmPassword": "Password123!",
+        "role": "user"
+    })
+    assert res1.status_code == 400
+    assert "Allowed roles are 'operator' and 'admin'." in res1.get_json()["error"]
 
 # --- 19. Status Filter Works ---
 def test_status_filter_works(client):
@@ -435,37 +416,15 @@ def test_authorized_roles_can_view_parcel_details(client):
     assert res.status_code == 200
     assert res.get_json()["parcel"]["parcelId"] == parcel_id
 
-# --- 27. Normal User Can View Own Parcel Details ---
-def test_normal_user_can_view_own_parcel_details(client):
-    user_csrf = helper_register_and_login(client, "user_own_det", role="user")
-    
-    # User creates parcel via helper (in real app, user creates via custom route or operator)
-    # Simulate user parcel in DB:
-    ParcelModel.create_parcel({"parcelId": "P-USER-OWN", "senderName": "A", "senderContact": "1", "receiverName": "B", "receiverContact": "2", "origin": "X", "destination": "Y", "weightKg": 1.0, "valueEur": 10, "submittedBy": "user_own_det"})
-    
-    # Find user_id from session/login
-    from models.user_model import UserModel
-    user_doc = UserModel.find_by_identifier("user_own_det")
-    user_id = str(user_doc["_id"])
-    ParcelModel.create_parcel({"parcelId": "P-USER-REALOWN", "senderName": "A", "senderContact": "1", "receiverName": "B", "receiverContact": "2", "origin": "X", "destination": "Y", "weightKg": 1.0, "valueEur": 10, "submittedBy": user_id})
-
-    res = client.get('/api/parcels/P-USER-REALOWN', headers={"X-CSRF-Token": user_csrf})
-    assert res.status_code == 200
-    assert res.get_json()["parcel"]["parcelId"] == "P-USER-REALOWN"
-
-# --- 28. Normal User Cannot View Another User Parcel Details ---
-def test_normal_user_cannot_view_another_user_parcel_details(client):
-    op_csrf = helper_register_and_login(client, "op_priv_owner", role="operator")
-    create_res = client.post('/api/parcels', json={
-        "senderName": "A", "senderContact": "123", "receiverName": "B", "receiverContact": "456",
-        "origin": "X", "destination": "Y", "weightKg": 1.0, "valueEur": 10
-    }, headers={"X-CSRF-Token": op_csrf})
-    parcel_id = create_res.get_json()["parcel"]["parcelId"]
-
-    user_csrf = helper_register_and_login(client, "user_priv_hacker", role="user")
-    res = client.get(f'/api/parcels/{parcel_id}', headers={"X-CSRF-Token": user_csrf})
-    assert res.status_code == 403
-    assert "Access denied" in res.get_json()["error"]
+# --- 27 & 28. Normal User Registration Rejected ---
+def test_normal_user_details_registration_rejected(client):
+    res = client.post('/api/auth/register', json={
+        "fullName": "User Details", "username": "user_own_det", "email": "details@example.com",
+        "mobile": "9966554411", "password": "Password123!", "confirmPassword": "Password123!",
+        "role": "user"
+    })
+    assert res.status_code == 400
+    assert "Allowed roles are 'operator' and 'admin'." in res.get_json()["error"]
 
 # --- 29. Nonexistent Parcel Returns 404 ---
 def test_nonexistent_parcel_returns_404(client):

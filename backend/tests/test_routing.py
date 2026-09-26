@@ -177,18 +177,14 @@ def test_api_route_parcel_admin_success(client):
     assert p["insuranceRequired"] is False
     assert p["status"] == "ROUTING_EVALUATED"
 
-def test_api_route_parcel_normal_user_denied_403(client):
-    op_csrf = helper_register_and_login(client, "op_for_user", role="operator")
-    create_res = client.post('/api/parcels', json={
-        "senderName": "Alice", "senderContact": "123", "receiverName": "Bob", "receiverContact": "456",
-        "origin": "Berlin", "destination": "Munich", "weightKg": 2.0, "valueEur": 500.0
-    }, headers={"X-CSRF-Token": op_csrf})
-    parcel_id = create_res.get_json()["parcel"]["parcelId"]
-
-    user_csrf = helper_register_and_login(client, "normal_route_user", role="user")
-    res = client.post(f'/api/parcels/{parcel_id}/route', headers={"X-CSRF-Token": user_csrf})
-    assert res.status_code == 403
-    assert "Access denied" in res.get_json()["error"]
+def test_api_route_parcel_normal_user_registration_rejected(client):
+    res = client.post('/api/auth/register', json={
+        "fullName": "Normal Route User", "username": "normal_route_user", "email": "route_user@example.com",
+        "mobile": "9944332211", "password": "Password123!", "confirmPassword": "Password123!",
+        "role": "user"
+    })
+    assert res.status_code == 400
+    assert "Allowed roles are 'operator' and 'admin'." in res.get_json()["error"]
 
 def test_api_route_parcel_unauthenticated_401(client):
     res = client.post('/api/parcels/PCL-SOMEID/route')

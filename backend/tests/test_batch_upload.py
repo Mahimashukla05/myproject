@@ -440,13 +440,15 @@ def test_operator_allowed(client):
     res = client.post('/api/parcels/batch', data=data, content_type='multipart/form-data', headers={"X-CSRF-Token": op_csrf})
     assert res.status_code == 200
 
-# --- 20. Normal User Gets 403 ---
-def test_normal_user_gets_403(client):
-    user_csrf = helper_register_and_login(client, "normal_batch_user", role="user")
-    json_data = {"parcels": []}
-    data = {'file': (io.BytesIO(json.dumps(json_data).encode('utf-8')), 'batch.json')}
-    res = client.post('/api/parcels/batch', data=data, content_type='multipart/form-data', headers={"X-CSRF-Token": user_csrf})
-    assert res.status_code == 403
+# --- 20. Normal User Registration Rejected ---
+def test_normal_user_registration_rejected(client):
+    res = client.post('/api/auth/register', json={
+        "fullName": "Normal Batch User", "username": "normal_batch_user", "email": "batch_user@example.com",
+        "mobile": "9977665544", "password": "Password123!", "confirmPassword": "Password123!",
+        "role": "user"
+    })
+    assert res.status_code == 400
+    assert "Allowed roles are 'operator' and 'admin'." in res.get_json()["error"]
 
 # --- 21. Unauthenticated Gets 401 ---
 def test_unauthenticated_gets_401(client):
@@ -533,4 +535,106 @@ def test_batch_upload_leaves_parcel_in_received_state(client):
     assert parcel["department"] is None
     assert parcel["insuranceRequired"] is False
     assert parcel["insuranceStatus"] == "NOT_REQUIRED"
+
+# --- 26. Tetrixof XML Format Batch Upload ---
+def test_tetrixof_xml_batch_upload(client):
+    csrf = helper_register_and_login(client, "op_tetrixof_xml", role="operator")
+    tetrixof_xml = """<Container>
+    <Id>68465468</Id>
+    <ShippingDate>2016-07-22</ShippingDate>
+    <parcels>
+        <Parcel>
+            <Receipient>
+                <Name>Vinny Gankema</Name>
+                <Address>
+                    <Street>Marijkestraat</Street>
+                    <HouseNumber>28</HouseNumber>
+                    <PostalCode>4744AT</PostalCode>
+                    <City>Bosschenhoofd</City>
+                </Address>
+            </Receipient>
+            <Weight>0.02</Weight>
+            <Value>0</Value>
+        </Parcel>
+        <Parcel>
+            <Receipient>
+                <Name>Soner Colen</Name>
+                <Address>
+                    <Street>Meester Willemstraat</Street>
+                    <HouseNumber>111</HouseNumber>
+                    <PostalCode>3036MN</PostalCode>
+                    <City>Rotterdam</City>
+                </Address>
+            </Receipient>
+            <Weight>2.0</Weight>
+            <Value>0</Value>
+        </Parcel>
+    </parcels>
+</Container>"""
+
+    data = {'file': (io.BytesIO(tetrixof_xml.encode('utf-8')), 'tetrixof_batch.xml')}
+    res = client.post('/api/parcels/batch', data=data, content_type='multipart/form-data', headers={"X-CSRF-Token": csrf})
+
+    assert res.status_code == 200
+    body = res.get_json()
+    assert body["success"] is True
+    assert body["containerId"] == "68465468"
+    assert body["shippingDate"] == "2016-07-22"
+    assert body["total"] == 2
+    assert body["successful"] == 2
+    assert body["failed"] == 0
+
+    item1 = body["results"][0]
+    assert item1["status"] == "SUCCESS"
+    assert item1["parcelId"] == "68465468-P1"
+    assert item1["recipientName"] == "Vinny Gankema"
+    assert item1["street"] == "Marijkestraat"
+    assert item1["houseNumber"] == "28"
+    assert item1["postalCode"] == "4744AT"
+    assert item1["city"] == "Bosschenhoofd"
+    assert item1["weightKg"] == 0.02
+    assert item1["valueEur"] == 0.0
+    # Verify no fabricated data
+    assert item1.get("senderName") is None
+    assert item1.get("senderContact") is None
+    assert item1.get("receiverContact") is None
+    assert item1.get("origin") is None
+    assert item1["destination"] == "Marijkestraat 28, 4744AT Bosschenhoofd"
+
+    item2 = body["results"][1]
+    assert item2["status"] == "SUCCESS"
+    assert item2["parcelId"] == "68465468-P2"
+    assert item2["recipientName"] == "Soner Colen"
+    assert item2["street"] == "Meester Willemstraat"
+    assert item2["houseNumber"] == "111"
+    assert item2["postalCode"] == "3036MN"
+    assert item2["city"] == "Rotterdam"
+    assert item2["weightKg"] == 2.0
+    assert item2["valueEur"] == 0.0
+    # Verify no fabricated data
+    assert item2.get("senderName") is None
+    assert item2.get("senderContact") is None
+    assert item2.get("receiverContact") is None
+    assert item2.get("origin") is None
+    assert item2["destination"] == "Meester Willemstraat 111, 3036MN Rotterdam"
+
+    # Also verify persisted database records
+    db_p1 = ParcelModel.find_by_parcel_id("68465468-P1")
+    assert db_p1 is not None
+    assert db_p1["receiverName"] == "Vinny Gankema"
+    assert db_p1["receiverContact"] is None
+    assert db_p1["senderName"] is None
+    assert db_p1["senderContact"] is None
+    assert db_p1["origin"] is None
+    assert db_p1["destination"] == "Marijkestraat 28, 4744AT Bosschenhoofd"
+
+    db_p2 = ParcelModel.find_by_parcel_id("68465468-P2")
+    assert db_p2 is not None
+    assert db_p2["receiverName"] == "Soner Colen"
+    assert db_p2["receiverContact"] is None
+    assert db_p2["senderName"] is None
+    assert db_p2["senderContact"] is None
+    assert db_p2["origin"] is None
+    assert db_p2["destination"] == "Meester Willemstraat 111, 3036MN Rotterdam"
+
 

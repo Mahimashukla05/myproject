@@ -73,13 +73,26 @@ def test_1_valid_registration(client):
         "mobile": "9876543210",
         "password": "Password123!",
         "confirmPassword": "Password123!",
-        "role": "user"
+        "role": "operator"
     })
     assert res.status_code == 201
     data = res.get_json()
     assert data["success"] is True
     assert data["user"]["username"] == "johndoe"
-    assert data["user"]["role"] == "user"
+    assert data["user"]["role"] == "operator"
+
+def test_1b_user_role_registration_rejected(client):
+    res = client.post('/api/auth/register', json={
+        "fullName": "Normal User",
+        "username": "normaluser_rej",
+        "email": "rej@example.com",
+        "mobile": "9876543299",
+        "password": "Password123!",
+        "confirmPassword": "Password123!",
+        "role": "user"
+    })
+    assert res.status_code == 400
+    assert "Allowed roles are 'operator' and 'admin'." in res.get_json()["error"]
 
 def test_2_duplicate_username(client):
     client.post('/api/auth/register', json={
@@ -164,15 +177,13 @@ def test_9_unauthenticated_endpoint_returns_401(client):
     assert "Authentication required" in res.get_json()["error"]
 
 def test_10_wrong_role_returns_403(client):
-    client.post('/api/auth/register', json={
+    reg_res = client.post('/api/auth/register', json={
         "fullName": "Normal User", "username": "normaluser", "email": "normal@example.com",
         "mobile": "9876543219", "password": "Password123!", "confirmPassword": "Password123!",
         "role": "user"
     })
-    client.post('/api/auth/login', json={"identifier": "normaluser", "password": "Password123!"})
-    res = client.get('/api/admin/users')
-    assert res.status_code == 403
-    assert "Access denied" in res.get_json()["error"]
+    assert reg_res.status_code == 400
+    assert "Allowed roles are 'operator' and 'admin'." in reg_res.get_json()["error"]
 
 def test_11_admin_access_allowed(client):
     client.post('/api/auth/register', json={

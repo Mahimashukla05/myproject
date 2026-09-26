@@ -30,7 +30,7 @@ def _clear_failed_attempts(key):
     _failed_login_attempts.pop(key, None)
 
 class AuthService:
-    VALID_ROLES = ["admin", "operator", "user"]
+    VALID_ROLES = ["admin", "operator"]
 
     @classmethod
     def register_user(cls, data):
@@ -43,7 +43,7 @@ class AuthService:
         mobile = str(data.get("mobile", "") or "").strip()
         password = str(data.get("password", "") or "")
         confirmPassword = str(data.get("confirmPassword", "") or "")
-        requested_role = str(data.get("role", "user") or "user").lower().strip()
+        requested_role = str(data.get("role", "operator") or "operator").lower().strip()
         adminKey = str(data.get("adminKey", "") or "").strip()
 
         # 1. Required fields check
@@ -74,12 +74,16 @@ class AuthService:
         if len(password) < 8:
             return {"success": False, "error": "Password must be at least 8 characters long."}, 400
 
-        # 6. Role validation & Server-Side Admin Security Check (Requirement 10)
+        # 6. Role validation & Server-Side Admin Security Check
         if requested_role not in cls.VALID_ROLES:
-            return {"success": False, "error": "Invalid user role specified."}, 400
+            return {"success": False, "error": "Invalid user role specified. Allowed roles are 'operator' and 'admin'."}, 400
 
         if requested_role == "admin":
-            if not adminKey or adminKey != Config.ADMIN_REGISTRATION_KEY:
+            server_key = Config.ADMIN_REGISTRATION_KEY
+            if not server_key or not str(server_key).strip():
+                logger.error("Admin registration attempted but ADMIN_REGISTRATION_KEY is not configured on the server.")
+                return {"success": False, "error": "Admin registration is currently unavailable due to server configuration."}, 500
+            if adminKey != server_key:
                 logger.warning(f"Unauthorized Admin registration attempt for username '{username}'")
                 return {"success": False, "error": "Invalid Admin registration key. Admin creation is restricted."}, 403
 
@@ -128,6 +132,11 @@ class AuthService:
         if not user.get("isActive", True):
             logger.warning(f"Login attempt for inactive account '{user.get('username')}'")
             return {"success": False, "error": "Account is deactivated."}, 403
+
+        user_role = str(user.get("role", "")).lower()
+        if user_role not in cls.VALID_ROLES:
+            logger.warning(f"Login attempt for account '{user.get('username')}' with unsupported role '{user_role}'")
+            return {"success": False, "error": "Access denied. Account role is not supported."}, 403
 
         _clear_failed_attempts(rate_key)
         logger.info(f"Successful login for user '{user.get('username')}' (role: {user.get('role')})")

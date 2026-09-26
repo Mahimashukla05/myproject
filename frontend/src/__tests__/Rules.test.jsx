@@ -200,6 +200,9 @@ describe('Phase 5 — Rule Management Frontend Components', () => {
 
     expect(screen.getByText('Confirm Rule Activation')).toBeInTheDocument();
 
+    const input = screen.getByPlaceholderText('ACTIVATE');
+    fireEvent.change(input, { target: { value: 'ACTIVATE' } });
+
     const confirmBtn = screen.getByRole('button', { name: 'Confirm & Activate' });
     fireEvent.click(confirmBtn);
 
@@ -208,7 +211,7 @@ describe('Phase 5 — Rule Management Frontend Components', () => {
         expect.stringContaining('/api/rule-change-requests/RCR-000001/approve'),
         expect.objectContaining({
           method: 'POST',
-          body: JSON.stringify({ confirm: true })
+          body: JSON.stringify({ confirmation: 'ACTIVATE' })
         })
       );
     });

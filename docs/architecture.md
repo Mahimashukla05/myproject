@@ -26,16 +26,16 @@ The Parcel Routing System is designed to handle parcel intake, routing criteria 
 - **Interface Segregation (I)**: Minimal, focused service parameters and database access contracts.
 - **Dependency Inversion (D)**: Business logic services remain independent from concrete infrastructure.
 
-### Planned Role-Based Access Control (RBAC)
-Server-side authorization for three defined roles:
-- **Admin**: Dashboard, rule approvals, user management, audit logs.
-- **Operator**: Single parcel entry, batch file upload (JSON/XML), rule change requests, system-wide parcel history.
-- **Normal User**: Basic operational parcel submission without administrative access.
+### Role-Based Access Control (RBAC)
+Server-side authorization for two defined roles:
+- **Admin**: Dashboard, rule approvals (requires case-sensitive confirmation `"ACTIVATE"`), user management, audit logs, system alerts. Admin registration requires environment-configured `ADMIN_REGISTRATION_KEY`.
+- **Operator**: Single parcel intake form, batch file upload (JSON/XML), rule change requests, system-wide parcel history, work alerts.
+- *Normal User role is completely removed from registration, login, and authorization flows.*
 
-### Planned Parcel & Audit Lifecycles
+### Parcel & Audit Lifecycles
 - **Operational Dashboard (Phase 4)**: System summary metrics (`totalParcels`, `successfullyProcessed`, `failed`, `insurancePending`, `insuranceRejected`) and department distribution (`MAIL`, `REGULAR`, `HEAVY`) over configurable time boundaries (`today`, `week` meaning current calendar week from Monday 00:00:00 UTC, `all`) via `GET /api/dashboard/summary`. `insurancePending` and `insuranceRejected` are based strictly on authoritative `insuranceStatus` (`PENDING` / `REJECTED`).
-- **Paginated Parcel Operational Views (Phase 4)**: Server-side paginated and filterable parcel history endpoint (`GET /api/parcels`) with NoSQL-safe whitelist sorting. Normal Users are strictly scoped to their own submitted parcels.
-- **Routing Rule Governance & Change Requests (Phase 5)**: Dynamically versioned routing rules in MongoDB (`routing_rules`), active version lookup (`GET /api/routing-rules/active`), version history (`GET /api/routing-rules/history`), Operator rule change requests (`rule_change_requests`), Admin approval (`POST /api/rule-change-requests/<id>/approve`), Admin rejection (`POST /api/rule-change-requests/<id>/reject`), Operator withdrawal (`POST /api/rule-change-requests/<id>/withdraw`), and `audit_logs` integration (`RULE_CHANGE_APPROVED`, `RULE_VERSION_ACTIVATED`, `RULE_CHANGE_REJECTED`).
+- **Paginated Parcel Operational Views (Phase 4)**: Server-side paginated and filterable parcel history endpoint (`GET /api/parcels`) with NoSQL-safe whitelist sorting.
+- **Routing Rule Governance & Change Requests (Phase 5 & Phase 7)**: Dynamically versioned routing rules in MongoDB (`routing_rules`), active version lookup (`GET /api/routing-rules/active`), version history (`GET /api/routing-rules/history`), Operator rule change requests (`rule_change_requests`), Admin approval (`POST /api/rule-change-requests/<id>/approve` requiring exact body `{"confirmation": "ACTIVATE"}`), Admin rejection (`POST /api/rule-change-requests/<id>/reject`), Operator withdrawal (`POST /api/rule-change-requests/<id>/withdraw`), and `audit_logs` integration (`RULE_CHANGE_APPROVED`, `RULE_VERSION_ACTIVATED`, `RULE_CHANGE_REJECTED`).
 - **Audit Logs**: Mongo-backed administrative change audit tracking (`audit_logs`).
 
 ---

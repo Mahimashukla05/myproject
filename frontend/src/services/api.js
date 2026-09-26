@@ -22,3 +22,15 @@ export function getApiUrl(path) {
 
   return `${base}${cleanPath}`;
 }
+
+export async function apiFetch(path, options = {}) {
+  const url = getApiUrl(path);
+  const mergedOptions = {
+    credentials: 'include',
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+    },
+  };
+  return fetch(url, mergedOptions);
+}

@@ -182,15 +182,14 @@ def test_parcel_7_unauthenticated_request_returns_401(client):
     })
     assert res.status_code == 401
 
-def test_parcel_8_normal_user_denied_creation_returns_403(client):
-    csrf_token = helper_register_and_login(client, "normal_user", role="user")
-    
-    res = client.post('/api/parcels', json={
-        "senderName": "Alice", "senderContact": "123", "receiverName": "Bob", "receiverContact": "456",
-        "origin": "A", "destination": "B", "weightKg": 1.5, "valueEur": 10
-    }, headers={"X-CSRF-Token": csrf_token})
-    assert res.status_code == 403
-    assert "Access denied" in res.get_json()["error"]
+def test_parcel_8_normal_user_registration_rejected(client):
+    res = client.post('/api/auth/register', json={
+        "fullName": "Normal User", "username": "normal_user_parcel", "email": "normal_parcel@example.com",
+        "mobile": "9876543999", "password": "Password123!", "confirmPassword": "Password123!",
+        "role": "user"
+    })
+    assert res.status_code == 400
+    assert "Allowed roles are 'operator' and 'admin'." in res.get_json()["error"]
 
 def test_parcel_9_admin_can_create_parcel(client):
     csrf_token = helper_register_and_login(client, "admin_parcel", role="admin")
