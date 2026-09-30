@@ -27,17 +27,29 @@ class LifecycleService:
         ins_req = parcel.get("insuranceRequired", False)
         ins_status = parcel.get("insuranceStatus")
 
-        if not ins_req or ins_status != "PENDING" or current_status != "AWAITING_INSURANCE":
+        if ins_status == "APPROVED":
+            return {
+                "success": False,
+                "error": f"Insurance for parcel '{parcel_id}' is already approved."
+            }, 400
+
+        if ins_status == "REJECTED":
+            return {
+                "success": False,
+                "error": f"Cannot approve insurance for parcel '{parcel_id}' as it has been rejected."
+            }, 400
+
+        if not ins_req and current_status != "AWAITING_INSURANCE" and ins_status not in ["PENDING", "REQUIRED", "AWAITING_INSURANCE"]:
             return {
                 "success": False,
                 "error": f"Cannot approve insurance. Parcel '{parcel_id}' is in status '{current_status}' with insurance status '{ins_status}'."
             }, 400
 
-        extra = {"insuranceStatus": "APPROVED"}
+        extra = {"insuranceStatus": "APPROVED", "insuranceRequired": True}
         updated_doc = ParcelModel.update_parcel_status(parcel_id, "INSURANCE_APPROVED", extra)
         if updated_doc is None:
             updated_doc = dict(parcel)
-            updated_doc.update({"status": "INSURANCE_APPROVED", "insuranceStatus": "APPROVED"})
+            updated_doc.update({"status": "INSURANCE_APPROVED", "insuranceStatus": "APPROVED", "insuranceRequired": True})
 
         # Record Audit Event
         actor_id = actor.get("_id") or actor.get("id") or "system"
@@ -69,7 +81,19 @@ class LifecycleService:
         ins_req = parcel.get("insuranceRequired", False)
         ins_status = parcel.get("insuranceStatus")
 
-        if not ins_req or ins_status != "PENDING" or current_status != "AWAITING_INSURANCE":
+        if ins_status == "REJECTED":
+            return {
+                "success": False,
+                "error": f"Insurance for parcel '{parcel_id}' is already rejected."
+            }, 400
+
+        if ins_status == "APPROVED":
+            return {
+                "success": False,
+                "error": f"Cannot reject insurance for parcel '{parcel_id}' as it has been approved."
+            }, 400
+
+        if not ins_req and current_status != "AWAITING_INSURANCE" and ins_status not in ["PENDING", "REQUIRED", "AWAITING_INSURANCE"]:
             return {
                 "success": False,
                 "error": f"Cannot reject insurance. Parcel '{parcel_id}' is in status '{current_status}' with insurance status '{ins_status}'."
