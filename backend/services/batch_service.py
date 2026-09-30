@@ -314,12 +314,14 @@ class BatchService:
         for index, item in enumerate(parcels_list):
             if not isinstance(item, dict):
                 failed += 1
+                reason = "Invalid row structure. Parcel must be an object."
+                ParcelModel.create_failed_parcel(f"ROW-{index+1}", {}, reason, user_id)
                 results.append(make_result_item(
                     index=index,
                     parcel_id_str=f"ROW-{index+1}",
                     item_dict={},
                     status="FAILED",
-                    errors=["Invalid row structure. Parcel must be an object."],
+                    errors=[reason],
                     error_type="VALIDATION"
                 ))
                 continue
@@ -374,9 +376,11 @@ class BatchService:
             elif parcel_id_str != f"ROW-{index+1}":
                 seen_parcel_ids.add(parcel_id_str)
 
-            # If validation errors occurred, mark row as failed
+            # If validation errors occurred, mark row as failed and store in DB
             if row_errors:
                 failed += 1
+                failure_msg = "; ".join(row_errors)
+                ParcelModel.create_failed_parcel(parcel_id_str, item_clean, failure_msg, user_id)
                 results.append(make_result_item(
                     index=index,
                     parcel_id_str=parcel_id_str,
@@ -391,12 +395,14 @@ class BatchService:
             existing_doc = ParcelModel.find_by_parcel_id(parcel_id_str)
             if existing_doc:
                 failed += 1
+                exist_msg = f"Parcel ID '{parcel_id_str}' already exists in database."
+                ParcelModel.create_failed_parcel(parcel_id_str, item_clean, exist_msg, user_id)
                 results.append(make_result_item(
                     index=index,
                     parcel_id_str=parcel_id_str,
                     item_dict=item_clean,
                     status="FAILED",
-                    errors=[f"Parcel ID '{parcel_id_str}' already exists in database."],
+                    errors=[exist_msg],
                     error_type="VALIDATION"
                 ))
                 continue
@@ -421,6 +427,7 @@ class BatchService:
                 if route_code != 200 or not route_res or not route_res.get("success"):
                     err_msg = route_res.get("error") if isinstance(route_res, dict) else "Routing evaluation failed"
                     failed += 1
+                    ParcelModel.create_failed_parcel(parcel_id_str, item_clean, err_msg, user_id)
                     results.append(make_result_item(
                         index=index,
                         parcel_id_str=parcel_id_str,
@@ -446,21 +453,25 @@ class BatchService:
                 logger.error(f"Technical database error inserting parcel '{parcel_id_str}': {ex}")
                 failed += 1
                 if "duplicate key" in str(ex).lower() or "11000" in str(ex):
+                    dup_err = f"Parcel ID '{parcel_id_str}' already exists in database."
+                    ParcelModel.create_failed_parcel(parcel_id_str, item_clean, dup_err, user_id)
                     results.append(make_result_item(
                         index=index,
                         parcel_id_str=parcel_id_str,
                         item_dict=item_clean,
                         status="FAILED",
-                        errors=[f"Parcel ID '{parcel_id_str}' already exists in database."],
+                        errors=[dup_err],
                         error_type="VALIDATION"
                     ))
                 else:
+                    tech_err = "Technical database failure during insertion."
+                    ParcelModel.create_failed_parcel(parcel_id_str, item_clean, tech_err, user_id)
                     results.append(make_result_item(
                         index=index,
                         parcel_id_str=parcel_id_str,
                         item_dict=item_clean,
                         status="FAILED",
-                        errors=["Technical database failure during insertion."],
+                        errors=[tech_err],
                         error_type="TECHNICAL"
                     ))
 
