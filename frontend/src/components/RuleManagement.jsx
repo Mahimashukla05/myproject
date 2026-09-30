@@ -235,7 +235,8 @@ export default function RuleManagement({ userRole }) {
               <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb' }}>
                 <td style={{ padding: '0.4rem', fontWeight: 600 }}>{r.department}</td>
                 <td style={{ padding: '0.4rem' }}>
-                  {r.minWeight !== null && r.minWeight !== undefined ? `${r.minWeight} ${r.minOp || 'GT'}` : ''} weight &le; {r.maxWeight !== null ? `${r.maxWeight} kg` : '&infin;'}
+                  {r.minWeight !== null && r.minWeight !== undefined ? `${r.minWeight} kg < ` : ''}
+                  weight &le; {r.maxWeight !== null ? `${r.maxWeight} kg` : 'maximum'}
                 </td>
               </tr>
             ))}
@@ -244,7 +245,7 @@ export default function RuleManagement({ userRole }) {
 
         <h4 style={{ margin: '0.5rem 0' }}>Insurance Rule</h4>
         <p style={{ margin: 0 }}>
-          Insurance Required when parcel <strong>valueEur &gt; €{activeRules?.insuranceRule?.thresholdEur ?? 1000}</strong>
+          Insurance Required when parcel <strong>value &gt; €{activeRules?.insuranceRule?.thresholdEur ?? 1000}</strong>
         </p>
       </div>
 
