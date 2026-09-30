@@ -5,6 +5,7 @@ import { getCsrfToken } from '../services/auth.js';
 export default function ParcelDetailModal({ parcel, userRole, onClose, onParcelUpdated }) {
   const [modalParcel, setModalParcel] = useState(parcel);
   const [loading, setLoading] = useState(false);
+  const [adminReason, setAdminReason] = useState('');
   const [actionError, setActionError] = useState('');
   const [actionSuccess, setActionSuccess] = useState('');
 
@@ -12,6 +13,7 @@ export default function ParcelDetailModal({ parcel, userRole, onClose, onParcelU
     setModalParcel(parcel);
     setActionError('');
     setActionSuccess('');
+    setAdminReason('');
   }, [parcel]);
 
   if (!modalParcel) return null;
@@ -30,7 +32,7 @@ export default function ParcelDetailModal({ parcel, userRole, onClose, onParcelU
   };
 
   const isAdmin = userRole === 'admin';
-  const isEligibleForApproval = 
+  const isEligibleForInsuranceAction = 
     modalParcel.insuranceStatus !== 'APPROVED' &&
     modalParcel.insuranceStatus !== 'REJECTED' &&
     (modalParcel.insuranceRequired === true ||
@@ -74,6 +76,51 @@ export default function ParcelDetailModal({ parcel, userRole, onClose, onParcelU
     }
   };
 
+  const handleRejectInsurance = async () => {
+    if (!adminReason.trim()) {
+      setActionError('Please specify the reason of failure before rejecting insurance.');
+      return;
+    }
+
+    setLoading(true);
+    setActionError('');
+    setActionSuccess('');
+
+    try {
+      const csrfToken = getCsrfToken();
+      const response = await apiFetch(`/api/parcels/${modalParcel.parcelId}/insurance/reject`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken,
+        },
+        body: JSON.stringify({ reason: adminReason.trim() }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setActionError(data.error || 'Failed to reject insurance.');
+      } else {
+        const updated = data.parcel || {
+          ...modalParcel,
+          status: 'INSURANCE_REJECTED',
+          insuranceStatus: 'REJECTED',
+          failureReason: adminReason.trim(),
+        };
+        setModalParcel(updated);
+        setActionSuccess(`Insurance for parcel ${updated.parcelId} has been REJECTED.`);
+        if (onParcelUpdated) {
+          onParcelUpdated(updated);
+        }
+      }
+    } catch (err) {
+      setActionError('Network error while rejecting insurance.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -109,7 +156,7 @@ export default function ParcelDetailModal({ parcel, userRole, onClose, onParcelU
             <strong>Status:</strong>{' '}
             <span style={{
               padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.85rem', fontWeight: 700,
-              backgroundColor: modalParcel.status === 'FAILED' ? '#fee2e2' : '#f3f4f6',
+              backgroundColor: modalParcel.status === 'FAILED' || modalParcel.status === 'INSURANCE_REJECTED' ? '#fee2e2' : '#f3f4f6',
               color: getStatusColor(modalParcel.status)
             }}>
               {modalParcel.status}
@@ -137,7 +184,7 @@ export default function ParcelDetailModal({ parcel, userRole, onClose, onParcelU
         </div>
 
         {/* Admin Insurance Action Controls */}
-        {isAdmin && isEligibleForApproval && (
+        {isAdmin && isEligibleForInsuranceAction && (
           <div style={{
             marginBottom: '1.5rem',
             padding: '1rem',
@@ -145,28 +192,59 @@ export default function ParcelDetailModal({ parcel, userRole, onClose, onParcelU
             border: '1px solid #bfdbfe',
             borderRadius: '6px',
             display: 'flex',
-            alignItems: 'center',
-            justify: 'space-between',
-            gap: '1rem'
+            flexDirection: 'column',
+            gap: '0.75rem'
           }}>
             <div>
-              <strong style={{ color: '#1e40af', display: 'block' }}>Admin Action Required</strong>
-              <span style={{ fontSize: '0.85rem', color: '#1e3a8a' }}>This parcel requires insurance approval before it can be assigned to processing.</span>
+              <strong style={{ color: '#1e40af', display: 'block' }}>Admin Insurance Decision Required</strong>
+              <span style={{ fontSize: '0.85rem', color: '#1e3a8a' }}>You may approve or reject the insurance evaluation for this parcel.</span>
             </div>
-            <button
-              className="btn btn-primary"
-              style={{
-                width: 'auto',
-                padding: '0.5rem 1.25rem',
-                backgroundColor: '#16a34a',
-                borderColor: '#16a34a',
-                whiteSpace: 'nowrap'
-              }}
-              disabled={loading}
-              onClick={handleApproveInsurance}
-            >
-              {loading ? 'Approving...' : 'Approve Insurance'}
-            </button>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.85rem', fontWeight: 600, color: '#1e3a8a' }}>
+                Reason of Failure / Rejection (Required if rejecting):
+              </label>
+              <textarea
+                rows="2"
+                placeholder="Enter failure / rejection reason..."
+                value={adminReason}
+                onChange={(e) => setAdminReason(e.target.value)}
+                style={{ width: '100%', padding: '0.4rem', border: '1px solid #93c5fd', borderRadius: '4px', fontSize: '0.85rem' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button
+                className="btn btn-secondary"
+                style={{
+                  width: 'auto',
+                  padding: '0.45rem 1.1rem',
+                  backgroundColor: '#dc2626',
+                  color: '#ffffff',
+                  borderColor: '#dc2626',
+                  fontWeight: 600
+                }}
+                disabled={loading}
+                onClick={handleRejectInsurance}
+              >
+                {loading ? 'Processing...' : 'Reject Insurance'}
+              </button>
+
+              <button
+                className="btn btn-primary"
+                style={{
+                  width: 'auto',
+                  padding: '0.45rem 1.1rem',
+                  backgroundColor: '#16a34a',
+                  borderColor: '#16a34a',
+                  fontWeight: 600
+                }}
+                disabled={loading}
+                onClick={handleApproveInsurance}
+              >
+                {loading ? 'Processing...' : 'Approve Insurance'}
+              </button>
+            </div>
           </div>
         )}
 
