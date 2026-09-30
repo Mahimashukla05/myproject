@@ -113,8 +113,7 @@ class BatchService:
                 receiver_contact = (elem.findtext("receiverContact") or "").strip() or None
                 origin_val = (elem.findtext("origin") or "").strip() or None
 
-                addr_parts = [p for p in [f"{street} {house_number}".strip(), f"{postal_code} {city}".strip()] if p]
-                dest_constructed = ", ".join(addr_parts)
+                dest_constructed = city if city else "Destination"
                 destination_val = (elem.findtext("destination") or dest_constructed or "").strip() or None
 
                 item = {
