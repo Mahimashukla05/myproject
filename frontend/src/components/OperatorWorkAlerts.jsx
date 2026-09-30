@@ -5,6 +5,7 @@ export default function OperatorWorkAlerts() {
   const [alertsData, setAlertsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
+  const [isDismissed, setIsDismissed] = useState(false);
 
   const fetchOperatorAlerts = async () => {
     setLoading(true);
@@ -30,6 +31,21 @@ export default function OperatorWorkAlerts() {
     fetchOperatorAlerts();
   }, []);
 
+  if (isDismissed) {
+    return (
+      <section className="card" style={{ marginBottom: '1.5rem', padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: '0.9rem', color: '#6b7280', fontWeight: 600 }}>Operator Work Alerts (Hidden)</span>
+        <button
+          className="btn btn-secondary"
+          onClick={() => setIsDismissed(false)}
+          style={{ width: 'auto', padding: '0.25rem 0.65rem', fontSize: '0.8rem' }}
+        >
+          Show Alerts
+        </button>
+      </section>
+    );
+  }
+
   if (loading) {
     return (
       <section className="card" style={{ marginBottom: '1.5rem' }}>
@@ -41,7 +57,16 @@ export default function OperatorWorkAlerts() {
   if (errorMsg) {
     return (
       <section className="card" style={{ borderColor: '#fca5a5', backgroundColor: '#fef2f2', marginBottom: '1.5rem' }}>
-        <h3 style={{ color: '#991b1b', margin: 0 }}>Operator Alerts Warning</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ color: '#991b1b', margin: 0 }}>Operator Alerts Warning</h3>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setIsDismissed(true)}
+            style={{ width: 'auto', padding: '0.2rem 0.5rem', fontSize: '0.8rem' }}
+          >
+            Hide
+          </button>
+        </div>
         <p style={{ color: '#991b1b', fontWeight: 600, marginTop: '0.5rem' }}>{errorMsg}</p>
       </section>
     );
@@ -57,13 +82,22 @@ export default function OperatorWorkAlerts() {
     <section className="card" style={{ marginBottom: '1.5rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
         <h2 style={{ margin: 0, color: 'var(--primary-accent)' }}>Operator Work Alerts</h2>
-        <button
-          className="btn btn-secondary"
-          onClick={fetchOperatorAlerts}
-          style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem' }}
-        >
-          Refresh
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button
+            className="btn btn-secondary"
+            onClick={fetchOperatorAlerts}
+            style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem' }}
+          >
+            Refresh
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setIsDismissed(true)}
+            style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem' }}
+          >
+            Hide Alerts
+          </button>
+        </div>
       </div>
 
       {!hasAlerts ? (
