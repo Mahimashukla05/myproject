@@ -148,8 +148,9 @@ export default function ParcelTable({ onSelectParcel, userRole }) {
                     <td style={{ padding: '0.6rem' }}>{p.department || 'N/A'}</td>
                     <td style={{ padding: '0.6rem' }}>
                       <span style={{
-                        padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 600,
-                        backgroundColor: '#f3f4f6', color: '#374151'
+                        padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 700,
+                        backgroundColor: p.status === 'FAILED' ? '#fee2e2' : p.status === 'COMPLETED' ? '#dcfce7' : '#f3f4f6',
+                        color: p.status === 'FAILED' ? '#991b1b' : p.status === 'COMPLETED' ? '#166534' : '#374151'
                       }}>
                         {p.status}
                       </span>
