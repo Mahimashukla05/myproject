@@ -510,7 +510,7 @@ def test_no_fake_data_generated(client):
         assert not p["parcelId"].startswith("DEMO-")
         assert not p["senderName"].startswith("Fake")
 
-# --- 25. Batch Upload Leaves Parcel In RECEIVED State Without Routing ---
+# --- 25. Batch Upload Routes Parcels After Creation ---
 def test_batch_upload_leaves_parcel_in_received_state(client):
     csrf = helper_register_and_login(client, "op_received_check", role="operator")
     json_data = {
@@ -520,7 +520,7 @@ def test_batch_upload_leaves_parcel_in_received_state(client):
                 "senderName": "Alice", "senderContact": "9876543210",
                 "receiverName": "Bob", "receiverContact": "9876543211",
                 "origin": "Raipur", "destination": "Delhi",
-                "weightKg": 15.0, "valueEur": 2500.0  # Would route to HEAVY / REQUIRED if routed
+                "weightKg": 15.0, "valueEur": 2500.0  # Routes to HEAVY / AWAITING_INSURANCE
             }
         ]
     }
@@ -528,13 +528,13 @@ def test_batch_upload_leaves_parcel_in_received_state(client):
     res = client.post('/api/parcels/batch', data=data, content_type='multipart/form-data', headers={"X-CSRF-Token": csrf})
     assert res.status_code == 200
 
-    # Retrieve created parcel directly from DB to verify initial state
+    # Retrieve created parcel directly from DB to verify routed state
     parcel = ParcelModel.find_by_parcel_id("PCL-RECV-001")
     assert parcel is not None
-    assert parcel["status"] == "RECEIVED"
-    assert parcel["department"] is None
-    assert parcel["insuranceRequired"] is False
-    assert parcel["insuranceStatus"] == "NOT_REQUIRED"
+    assert parcel["status"] == "AWAITING_INSURANCE"
+    assert parcel["department"] == "HEAVY"
+    assert parcel["insuranceRequired"] is True
+    assert parcel["insuranceStatus"] == "PENDING"
 
 # --- 26. Tetrixof XML Format Batch Upload ---
 def test_tetrixof_xml_batch_upload(client):
@@ -636,5 +636,3 @@ def test_tetrixof_xml_batch_upload(client):
     assert db_p2["senderContact"] is None
     assert db_p2["origin"] is None
     assert db_p2["destination"] == "Meester Willemstraat 111, 3036MN Rotterdam"
-
-
