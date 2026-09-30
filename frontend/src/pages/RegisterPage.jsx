@@ -13,10 +13,30 @@ export default function RegisterPage({ onNavigateLogin }) {
     role: 'operator',
     adminKey: '',
   });
+
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [validationErrors, setValidationErrors] = useState({});
+  const [focusedField, setFocusedField] = useState(null);
+
+  const getRequirementsStatus = (value) => {
+    const val = value || '';
+    return {
+      length: val.length >= 8,
+      uppercase: /[A-Z]/.test(val),
+      lowercase: /[a-z]/.test(val),
+      number: /[0-9]/.test(val),
+      special: /[^A-Za-z0-9]/.test(val),
+    };
+  };
+
+  const isAllValid = (status) => {
+    return status.length && status.uppercase && status.lowercase && status.number && status.special;
+  };
+
+  const usernameReqs = getRequirementsStatus(formData.username);
+  const passwordReqs = getRequirementsStatus(formData.password);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -26,11 +46,21 @@ export default function RegisterPage({ onNavigateLogin }) {
   const validate = () => {
     const errors = {};
     if (!formData.fullName.trim()) errors.fullName = 'Full Name is required';
-    if (!formData.username.trim()) errors.username = 'Username is required';
+    if (!formData.username.trim()) {
+      errors.username = 'Username is required';
+    } else if (!isAllValid(usernameReqs)) {
+      errors.username = 'Username must contain at least 8 characters, 1 uppercase, 1 lowercase, 1 number, and 1 special character';
+    }
+
     if (!formData.email.trim()) errors.email = 'Email is required';
     if (!formData.mobile.trim()) errors.mobile = 'Mobile Number is required';
-    if (!formData.password) errors.password = 'Password is required';
-    if (formData.password && formData.password.length < 8) errors.password = 'Password must be at least 8 characters';
+
+    if (!formData.password) {
+      errors.password = 'Password is required';
+    } else if (!isAllValid(passwordReqs)) {
+      errors.password = 'Password must contain at least 8 characters, 1 uppercase, 1 lowercase, 1 number, and 1 special character';
+    }
+
     if (formData.password !== formData.confirmPassword) {
       errors.confirmPassword = 'Passwords do not match';
     }
@@ -66,6 +96,47 @@ export default function RegisterPage({ onNavigateLogin }) {
     }
   };
 
+  const renderRequirementsBox = (label, status) => {
+    const allPassed = isAllValid(status);
+    return (
+      <div style={{
+        marginTop: '0.4rem',
+        padding: '0.6rem 0.75rem',
+        backgroundColor: allPassed ? '#f0fdf4' : '#f8fafc',
+        border: `1px solid ${allPassed ? '#86efac' : '#cbd5e1'}`,
+        borderRadius: '4px',
+        fontSize: '0.8rem',
+        transition: 'all 0.2s ease'
+      }}>
+        <div style={{ fontWeight: 600, marginBottom: '0.3rem', color: '#334155' }}>
+          {label} must contain:
+        </div>
+        <ul style={{ listStyle: 'none', paddingLeft: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+          <li style={{ color: status.length ? '#166534' : '#991b1b', fontWeight: status.length ? 600 : 400 }}>
+            {status.length ? '✓' : '✗'} At least 8 characters
+          </li>
+          <li style={{ color: status.uppercase ? '#166534' : '#991b1b', fontWeight: status.uppercase ? 600 : 400 }}>
+            {status.uppercase ? '✓' : '✗'} At least 1 uppercase letter
+          </li>
+          <li style={{ color: status.lowercase ? '#166534' : '#991b1b', fontWeight: status.lowercase ? 600 : 400 }}>
+            {status.lowercase ? '✓' : '✗'} At least 1 lowercase letter
+          </li>
+          <li style={{ color: status.number ? '#166534' : '#991b1b', fontWeight: status.number ? 600 : 400 }}>
+            {status.number ? '✓' : '✗'} At least 1 number
+          </li>
+          <li style={{ color: status.special ? '#166534' : '#991b1b', fontWeight: status.special ? 600 : 400 }}>
+            {status.special ? '✓' : '✗'} At least 1 special character
+          </li>
+        </ul>
+        {allPassed && (
+          <div style={{ marginTop: '0.4rem', color: '#166534', fontWeight: 700 }}>
+            ✓ All {label.toLowerCase()} criteria met!
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="auth-card">
       <h2>Create Account</h2>
@@ -96,9 +167,11 @@ export default function RegisterPage({ onNavigateLogin }) {
             className={validationErrors.username ? 'input-error' : ''}
             value={formData.username}
             onChange={handleChange}
-            placeholder="johndoe"
+            onFocus={() => setFocusedField('username')}
+            placeholder="e.g. Abcd1234@"
           />
           {validationErrors.username && <span className="field-error">{validationErrors.username}</span>}
+          {focusedField === 'username' && renderRequirementsBox('Username', usernameReqs)}
         </div>
 
         <div className="form-group">
@@ -162,9 +235,11 @@ export default function RegisterPage({ onNavigateLogin }) {
             className={validationErrors.password ? 'input-error' : ''}
             value={formData.password}
             onChange={handleChange}
-            placeholder="At least 8 characters"
+            onFocus={() => setFocusedField('password')}
+            placeholder="At least 8 characters with Upper, Lower, Number & Symbol"
           />
           {validationErrors.password && <span className="field-error">{validationErrors.password}</span>}
+          {focusedField === 'password' && renderRequirementsBox('Password', passwordReqs)}
         </div>
 
         <div className="form-group">
