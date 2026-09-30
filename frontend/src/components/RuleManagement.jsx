@@ -56,6 +56,20 @@ export default function RuleManagement({ userRole }) {
     fetchData();
   }, [userRole]);
 
+  const getProposedDetails = (r) => {
+    if (!r) return 'N/A';
+    const pc = r.proposedChange || {};
+    if (r.category === 'INSURANCE') {
+      const thresh = pc.thresholdEur !== undefined ? pc.thresholdEur : (pc.threshold !== undefined ? pc.threshold : '1000');
+      return `Insurance approval for value > €${thresh}`;
+    } else if (r.category === 'DEPARTMENT') {
+      const dept = r.targetDepartment || pc.department || 'MAIL';
+      const maxW = pc.maxWeight !== undefined ? pc.maxWeight : '1.0';
+      return `Department ${dept}: max weight ≤ ${maxW} kg`;
+    }
+    return JSON.stringify(pc);
+  };
+
   const handleCreateRequest = async (e) => {
     e.preventDefault();
     if (!reason.trim()) {
@@ -278,7 +292,7 @@ export default function RuleManagement({ userRole }) {
                 <input
                   type="number"
                   step="0.01"
-                  placeholder="e.g. 800.00"
+                  placeholder="e.g. 1050.00"
                   value={proposedThreshold}
                   onChange={(e) => setProposedThreshold(e.target.value)}
                   style={{ width: '100%', padding: '0.4rem', marginTop: '0.2rem' }}
@@ -337,6 +351,7 @@ export default function RuleManagement({ userRole }) {
               <tr style={{ backgroundColor: '#f3f4f6' }}>
                 <th style={{ padding: '0.5rem' }}>Request ID</th>
                 <th style={{ padding: '0.5rem' }}>Action / Category</th>
+                <th style={{ padding: '0.5rem' }}>Proposed Details</th>
                 <th style={{ padding: '0.5rem' }}>Reason</th>
                 <th style={{ padding: '0.5rem' }}>Status</th>
                 <th style={{ padding: '0.5rem' }}>Actions</th>
@@ -347,6 +362,9 @@ export default function RuleManagement({ userRole }) {
                 <tr key={r.requestId} style={{ borderBottom: '1px solid #e5e7eb' }}>
                   <td style={{ padding: '0.5rem', fontFamily: 'monospace' }}>{r.requestId}</td>
                   <td style={{ padding: '0.5rem' }}>{r.action} {r.category}</td>
+                  <td style={{ padding: '0.5rem', fontWeight: 600, color: 'var(--primary-accent)', fontSize: '0.85rem' }}>
+                    {getProposedDetails(r)}
+                  </td>
                   <td style={{ padding: '0.5rem', fontSize: '0.85rem' }}>{r.reason}</td>
                   <td style={{ padding: '0.5rem' }}>
                     <span style={{
@@ -407,7 +425,7 @@ export default function RuleManagement({ userRole }) {
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
           <div className="card" style={{ width: '90%', maxWidth: '500px', backgroundColor: '#fff', padding: '1.5rem', borderRadius: '8px' }}>
             <h3>Confirm Rule Activation</h3>
-            <p>To approve request <strong>{selectedReqForApprove.requestId}</strong> and activate a new rule version, type <strong>ACTIVATE</strong> below:</p>
+            <p>To approve request <strong>{selectedReqForApprove.requestId}</strong> ({getProposedDetails(selectedReqForApprove)}) and activate a new rule version, type <strong>ACTIVATE</strong> below:</p>
             <div style={{ marginBottom: '1rem' }}>
               <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.85rem', fontWeight: 600 }}>Type ACTIVATE to confirm rule activation:</label>
               <input
@@ -431,7 +449,7 @@ export default function RuleManagement({ userRole }) {
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
           <div className="card" style={{ width: '90%', maxWidth: '500px', backgroundColor: '#fff', padding: '1.5rem', borderRadius: '8px' }}>
             <h3>Reject Rule Change Request</h3>
-            <p>Specify rejection reason for request <strong>{selectedReqForReject.requestId}</strong>:</p>
+            <p>Specify rejection reason for request <strong>{selectedReqForReject.requestId}</strong> ({getProposedDetails(selectedReqForReject)}):</p>
             <textarea
               rows="3"
               placeholder="Enter rejection reason..."
