@@ -97,7 +97,12 @@ function MainApp() {
                 {isAdmin && <AuditLogTable />}
 
                 {selectedParcel && (
-                  <ParcelDetailModal parcel={selectedParcel} onClose={() => setSelectedParcel(null)} />
+                  <ParcelDetailModal
+                    parcel={selectedParcel}
+                    userRole={user.role}
+                    onClose={() => setSelectedParcel(null)}
+                    onParcelUpdated={() => setRefreshKey((k) => k + 1)}
+                  />
                 )}
               </>
             )}
