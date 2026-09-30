@@ -27,12 +27,20 @@ export default function ParcelDetailModal({ parcel, onClose }) {
           <button className="btn btn-secondary" style={{ width: 'auto', padding: '0.25rem 0.65rem' }} onClick={onClose}>Close</button>
         </div>
 
+        {parcel.failureReason && (
+          <div style={{ padding: '0.75rem 1rem', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '6px', color: '#991b1b', marginBottom: '1.5rem' }}>
+            <strong style={{ display: 'block', marginBottom: '0.2rem', fontSize: '0.9rem' }}>⚠️ Reason of Failure:</strong>
+            <span style={{ fontSize: '0.85rem' }}>{parcel.failureReason}</span>
+          </div>
+        )}
+
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
           <div>
             <strong>Status:</strong>{' '}
             <span style={{
-              padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.85rem', fontWeight: 600,
-              backgroundColor: '#f3f4f6', color: getStatusColor(parcel.status)
+              padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.85rem', fontWeight: 700,
+              backgroundColor: parcel.status === 'FAILED' ? '#fee2e2' : '#f3f4f6',
+              color: getStatusColor(parcel.status)
             }}>
               {parcel.status}
             </span>
@@ -50,16 +58,10 @@ export default function ParcelDetailModal({ parcel, onClose }) {
           <div><strong>Submitted At:</strong> {new Date(parcel.submittedAt).toLocaleString()}</div>
         </div>
 
-        {parcel.failureReason && (
-          <div style={{ padding: '0.75rem', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '6px', color: '#991b1b', marginBottom: '1.5rem' }}>
-            <strong>Failure Reason:</strong> {parcel.failureReason}
-          </div>
-        )}
-
         <div style={{ backgroundColor: '#f9fafb', padding: '1rem', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
           <h4 style={{ margin: '0 0 0.5rem 0' }}>Lifecycle Progress Overview</h4>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', fontSize: '0.8rem' }}>
-            {['RECEIVED', 'ROUTING_EVALUATED', 'AWAITING_INSURANCE', 'INSURANCE_APPROVED', 'ASSIGNED', 'IN_PROCESSING', 'COMPLETED'].map((step, idx) => {
+            {['RECEIVED', 'ROUTING_EVALUATED', 'AWAITING_INSURANCE', 'INSURANCE_APPROVED', 'ASSIGNED', 'IN_PROCESSING', 'COMPLETED', 'FAILED'].map((step, idx) => {
               const isCurrent = parcel.status === step;
               return (
                 <div key={idx} style={{
