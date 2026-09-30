@@ -48,6 +48,44 @@ class ParcelModel:
             return doc
 
     @classmethod
+    def create_failed_parcel(cls, parcel_id_str, item_clean, failure_reason, user_id):
+        collection = cls.get_collection()
+        now = datetime.now(timezone.utc).isoformat()
+        
+        target_pid = parcel_id_str
+        if cls.find_by_parcel_id(target_pid) is not None:
+            unique_suffix = datetime.now(timezone.utc).strftime("%H%M%S%f")[:6]
+            target_pid = f"{parcel_id_str}-FAIL-{unique_suffix}"
+
+        doc = {
+            "parcelId": target_pid,
+            "senderName": str(item_clean.get("senderName")).strip() if item_clean.get("senderName") is not None else "N/A",
+            "senderContact": str(item_clean.get("senderContact")).strip() if item_clean.get("senderContact") is not None else "N/A",
+            "receiverName": str(item_clean.get("receiverName") or item_clean.get("recipientName")).strip() if (item_clean.get("receiverName") or item_clean.get("recipientName")) is not None else "N/A",
+            "receiverContact": str(item_clean.get("receiverContact")).strip() if item_clean.get("receiverContact") is not None else "N/A",
+            "origin": str(item_clean.get("origin")).strip() if item_clean.get("origin") is not None else "N/A",
+            "destination": str(item_clean.get("destination")).strip() if item_clean.get("destination") is not None else "N/A",
+            "weightKg": float(item_clean["weightKg"]) if isinstance(item_clean.get("weightKg"), (int, float)) else 0.0,
+            "valueEur": float(item_clean["valueEur"]) if isinstance(item_clean.get("valueEur"), (int, float)) else 0.0,
+            "department": None,
+            "insuranceRequired": False,
+            "insuranceStatus": "NOT_REQUIRED",
+            "status": "FAILED",
+            "submittedBy": str(user_id),
+            "submittedAt": now,
+            "updatedAt": now,
+            "failureReason": failure_reason
+        }
+
+        if collection is not None:
+            try:
+                result = collection.insert_one(doc)
+                doc["_id"] = str(result.inserted_id)
+            except Exception:
+                pass
+        return doc
+
+    @classmethod
     def find_by_parcel_id(cls, parcel_id):
         if not isinstance(parcel_id, str):
             return None
@@ -144,8 +182,8 @@ class ParcelModel:
         docs = list(collection.find(match_filter))
 
         totalParcels = len(docs)
-        successfullyProcessed = sum(1 for d in docs if d.get("status") == "COMPLETED")
-        failed = sum(1 for d in docs if d.get("status") == "FAILED")
+        successfullyProcessed = sum(1 for d in docs if d.get("status") in ["COMPLETED", "ROUTING_EVALUATED", "INSURANCE_APPROVED", "ASSIGNED", "IN_PROCESSING"])
+        failed = sum(1 for d in docs if d.get("status") in ["FAILED", "INSURANCE_REJECTED"])
         insurancePending = sum(1 for d in docs if d.get("insuranceStatus") == "PENDING")
         insuranceRejected = sum(1 for d in docs if d.get("insuranceStatus") == "REJECTED")
 
@@ -248,4 +286,3 @@ class ParcelModel:
         if "_id" in d:
             d["id"] = str(d.pop("_id"))
         return d
-
