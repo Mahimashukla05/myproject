@@ -140,7 +140,7 @@ def test_parcel_3_invalid_weight_zero_or_negative(client):
     # Weight <= 0
     res = client.post('/api/parcels', json={
         "senderName": "Alice", "senderContact": "123", "receiverName": "Bob", "receiverContact": "456",
-        "origin": "A", "destination": "B", "weightKg": 0, "valueEur": 10
+        "origin": "Berlin", "destination": "Munich", "weightKg": 0, "valueEur": 10
     }, headers={"X-CSRF-Token": csrf_token})
     assert res.status_code == 400
     assert "must be greater than 0.0" in res.get_json()["error"]
@@ -150,7 +150,7 @@ def test_parcel_4_negative_value_eur(client):
     
     res = client.post('/api/parcels', json={
         "senderName": "Alice", "senderContact": "123", "receiverName": "Bob", "receiverContact": "456",
-        "origin": "A", "destination": "B", "weightKg": 1.5, "valueEur": -5.0
+        "origin": "Berlin", "destination": "Munich", "weightKg": 1.5, "valueEur": -5.0
     }, headers={"X-CSRF-Token": csrf_token})
     assert res.status_code == 400
     assert "must be non-negative" in res.get_json()["error"]
@@ -160,7 +160,7 @@ def test_parcel_5_invalid_data_type_string_weight(client):
     
     res = client.post('/api/parcels', json={
         "senderName": "Alice", "senderContact": "123", "receiverName": "Bob", "receiverContact": "456",
-        "origin": "A", "destination": "B", "weightKg": "heavy", "valueEur": 10
+        "origin": "Berlin", "destination": "Munich", "weightKg": "heavy", "valueEur": 10
     }, headers={"X-CSRF-Token": csrf_token})
     assert res.status_code == 400
     assert "must be a numeric value" in res.get_json()["error"]
@@ -170,7 +170,7 @@ def test_parcel_6_malformed_nested_json_object(client):
     
     res = client.post('/api/parcels', json={
         "senderName": {"$ne": None}, "senderContact": "123", "receiverName": "Bob", "receiverContact": "456",
-        "origin": "A", "destination": "B", "weightKg": 1.5, "valueEur": 10
+        "origin": "Berlin", "destination": "Munich", "weightKg": 1.5, "valueEur": 10
     }, headers={"X-CSRF-Token": csrf_token})
     assert res.status_code == 400
     assert "must be a string" in res.get_json()["error"]
@@ -178,7 +178,7 @@ def test_parcel_6_malformed_nested_json_object(client):
 def test_parcel_7_unauthenticated_request_returns_401(client):
     res = client.post('/api/parcels', json={
         "senderName": "Alice", "senderContact": "123", "receiverName": "Bob", "receiverContact": "456",
-        "origin": "A", "destination": "B", "weightKg": 1.5, "valueEur": 10
+        "origin": "Berlin", "destination": "Munich", "weightKg": 1.5, "valueEur": 10
     })
     assert res.status_code == 401
 
@@ -196,7 +196,7 @@ def test_parcel_9_admin_can_create_parcel(client):
     
     res = client.post('/api/parcels', json={
         "senderName": "Admin Sender", "senderContact": "123", "receiverName": "Bob", "receiverContact": "456",
-        "origin": "A", "destination": "B", "weightKg": 5.0, "valueEur": 200
+        "origin": "Berlin", "destination": "Munich", "weightKg": 5.0, "valueEur": 200
     }, headers={"X-CSRF-Token": csrf_token})
     assert res.status_code == 201
 
@@ -204,13 +204,13 @@ def test_parcel_10_unique_parcel_id_generation(client):
     csrf_token = helper_register_and_login(client, "op_unique", role="operator")
     
     res1 = client.post('/api/parcels', json={
-        "senderName": "Sender 1", "senderContact": "123", "receiverName": "Bob", "receiverContact": "456",
-        "origin": "A", "destination": "B", "weightKg": 1.0, "valueEur": 50
+        "senderName": "Sender One", "senderContact": "123", "receiverName": "Bob", "receiverContact": "456",
+        "origin": "Berlin", "destination": "Munich", "weightKg": 1.0, "valueEur": 50
     }, headers={"X-CSRF-Token": csrf_token})
     
     res2 = client.post('/api/parcels', json={
-        "senderName": "Sender 2", "senderContact": "123", "receiverName": "Bob", "receiverContact": "456",
-        "origin": "A", "destination": "B", "weightKg": 2.0, "valueEur": 75
+        "senderName": "Sender Two", "senderContact": "123", "receiverName": "Bob", "receiverContact": "456",
+        "origin": "Berlin", "destination": "Munich", "weightKg": 2.0, "valueEur": 75
     }, headers={"X-CSRF-Token": csrf_token})
 
     id1 = res1.get_json()["parcel"]["parcelId"]
@@ -222,7 +222,7 @@ def test_parcel_11_submitted_by_uses_session_user_id_not_body(client):
     
     res = client.post('/api/parcels', json={
         "senderName": "Sender", "senderContact": "123", "receiverName": "Bob", "receiverContact": "456",
-        "origin": "A", "destination": "B", "weightKg": 1.0, "valueEur": 50,
+        "origin": "Berlin", "destination": "Munich", "weightKg": 1.0, "valueEur": 50,
         "submittedBy": "fake_hacker_id_123"
     }, headers={"X-CSRF-Token": csrf_token})
 
@@ -234,7 +234,7 @@ def test_parcel_12_get_parcel_by_id_success(client):
     
     create_res = client.post('/api/parcels', json={
         "senderName": "Get Sender", "senderContact": "123", "receiverName": "Bob", "receiverContact": "456",
-        "origin": "A", "destination": "B", "weightKg": 1.0, "valueEur": 50
+        "origin": "Berlin", "destination": "Munich", "weightKg": 1.0, "valueEur": 50
     }, headers={"X-CSRF-Token": csrf_token})
     
     parcel_id = create_res.get_json()["parcel"]["parcelId"]
@@ -249,3 +249,46 @@ def test_parcel_13_get_nonexistent_parcel_returns_404(client):
     res = client.get('/api/parcels/PCL-NONEXISTENT999')
     assert res.status_code == 404
     assert "not found" in res.get_json()["error"]
+
+# --- 14. Strict Name, Origin & Destination Field Alphabet Rules ---
+def test_strict_name_and_location_validation_rules(client):
+    csrf_token = helper_register_and_login(client, "op_strict_val", role="operator")
+
+    base_payload = {
+        "senderName": "John Doe",
+        "senderContact": "+91 9876543210",
+        "receiverName": "Rahul Kumar",
+        "receiverContact": "+91 9123456789",
+        "origin": "New Delhi",
+        "destination": "Mumbai",
+        "weightKg": 2.5,
+        "valueEur": 100.0
+    }
+
+    # 1. Valid payload succeeds
+    res = client.post('/api/parcels', json=base_payload, headers={"X-CSRF-Token": csrf_token})
+    assert res.status_code == 201
+
+    # 2. Invalid senderName with numbers
+    bad_sender = dict(base_payload, senderName="John123")
+    res = client.post('/api/parcels', json=bad_sender, headers={"X-CSRF-Token": csrf_token})
+    assert res.status_code == 400
+    assert "must contain only English alphabets and spaces" in res.get_json()["error"]
+
+    # 3. Invalid receiverName with hyphen
+    bad_receiver = dict(base_payload, receiverName="John-Doe")
+    res = client.post('/api/parcels', json=bad_receiver, headers={"X-CSRF-Token": csrf_token})
+    assert res.status_code == 400
+    assert "must contain only English alphabets and spaces" in res.get_json()["error"]
+
+    # 4. Invalid origin with numbers
+    bad_origin = dict(base_payload, origin="Raipur123")
+    res = client.post('/api/parcels', json=bad_origin, headers={"X-CSRF-Token": csrf_token})
+    assert res.status_code == 400
+    assert "must contain only English alphabets and spaces" in res.get_json()["error"]
+
+    # 5. Invalid destination with special symbol
+    bad_dest = dict(base_payload, destination="Delhi@India")
+    res = client.post('/api/parcels', json=bad_dest, headers={"X-CSRF-Token": csrf_token})
+    assert res.status_code == 400
+    assert "must contain only English alphabets and spaces" in res.get_json()["error"]
