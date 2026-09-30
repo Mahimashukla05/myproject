@@ -31,11 +31,15 @@ class ParcelService:
             if not re.match(r'^[A-Za-z ]+$', clean):
                 return f"Field '{field_name}' must contain only English alphabets and spaces."
 
+        # Contact phone number rule: exactly 10 digits
+        if field_name in ["senderContact", "receiverContact"]:
+            if not re.match(r'^\d{10}$', clean):
+                return f"Field '{field_name}' must be a 10-digit phone number."
+
         return None
 
     @classmethod
     def validate_numeric_field(cls, value, field_name, min_value=0.0, allow_zero=False):
-        # Reject booleans because in Python bool is a subclass of int (True == 1)
         if isinstance(value, bool) or not isinstance(value, (int, float)):
             return f"Field '{field_name}' must be a numeric value."
         val = float(value)
@@ -52,7 +56,6 @@ class ParcelService:
         if not isinstance(data, dict):
             return {"success": False, "error": "Invalid request payload format. Must be a JSON object."}, 400
 
-        # Disallow client from supplying metadata overrides
         forbidden_client_fields = ["submittedBy", "status", "department", "insuranceRequired", "insuranceStatus", "parcelId"]
         for ff in forbidden_client_fields:
             if ff in data and ff != "submittedBy":
@@ -86,6 +89,10 @@ class ParcelService:
             if err:
                 return {"success": False, "error": err}, 400
 
+        # Origin and Destination Inequality Rule
+        if str(origin).strip().lower() == str(destination).strip().lower():
+            return {"success": False, "error": "Origin and Destination cannot be the same."}, 400
+
         # 3. Numeric fields validation
         err = cls.validate_numeric_field(weightKg, "weightKg", min_value=0.0, allow_zero=False)
         if err:
@@ -97,7 +104,6 @@ class ParcelService:
 
         # 4. Generate unique parcel ID
         parcel_id = cls.generate_parcel_id()
-        # Guarantee uniqueness in unlikely collision
         attempts = 0
         while ParcelModel.find_by_parcel_id(parcel_id) is not None and attempts < 5:
             parcel_id = cls.generate_parcel_id()
