@@ -36,6 +36,7 @@ export default function SingleParcelUpload({ onParcelCreated }) {
     const newFieldErrors = {};
     const missing = [];
     const nameRegex = /^[A-Za-z ]+$/;
+    const phoneRegex = /^\d{10}$/;
 
     // Validate Sender Name
     if (!formData.senderName.trim()) {
@@ -45,10 +46,12 @@ export default function SingleParcelUpload({ onParcelCreated }) {
       newFieldErrors.senderName = 'Must contain only English alphabets (A-Z, a-z) and spaces. No numbers or special characters allowed.';
     }
 
-    // Validate Sender Contact
+    // Validate Sender Contact (Exactly 10 digits)
     if (!formData.senderContact.trim()) {
       missing.push('Sender Contact');
       newFieldErrors.senderContact = 'Sender Contact is required.';
+    } else if (!phoneRegex.test(formData.senderContact.trim())) {
+      newFieldErrors.senderContact = 'Phone number must be exactly 10 digits.';
     }
 
     // Validate Receiver Name
@@ -59,10 +62,12 @@ export default function SingleParcelUpload({ onParcelCreated }) {
       newFieldErrors.receiverName = 'Must contain only English alphabets (A-Z, a-z) and spaces. No numbers or special characters allowed.';
     }
 
-    // Validate Receiver Contact
+    // Validate Receiver Contact (Exactly 10 digits)
     if (!formData.receiverContact.trim()) {
       missing.push('Receiver Contact');
       newFieldErrors.receiverContact = 'Receiver Contact is required.';
+    } else if (!phoneRegex.test(formData.receiverContact.trim())) {
+      newFieldErrors.receiverContact = 'Phone number must be exactly 10 digits.';
     }
 
     // Validate Origin
@@ -79,6 +84,13 @@ export default function SingleParcelUpload({ onParcelCreated }) {
       newFieldErrors.destination = 'Destination is required.';
     } else if (!nameRegex.test(formData.destination.trim())) {
       newFieldErrors.destination = 'Must contain only English alphabets (A-Z, a-z) and spaces. No numbers or special characters allowed.';
+    }
+
+    // Origin and Destination Same Rule Check
+    if (formData.origin.trim() && formData.destination.trim() && !newFieldErrors.origin && !newFieldErrors.destination) {
+      if (formData.origin.trim().toLowerCase() === formData.destination.trim().toLowerCase()) {
+        newFieldErrors.destination = 'Origin and Destination cannot be the same.';
+      }
     }
 
     // Validate Weight
@@ -121,7 +133,6 @@ export default function SingleParcelUpload({ onParcelCreated }) {
 
     try {
       const csrfToken = getCsrfToken();
-      // 1. Submit parcel to existing backend creation endpoint
       const createRes = await apiFetch('/api/parcels', {
         method: 'POST',
         headers: {
@@ -148,7 +159,6 @@ export default function SingleParcelUpload({ onParcelCreated }) {
 
       const createdParcel = createData.parcel;
 
-      // 2. Trigger routing using existing backend routing endpoint
       const routeRes = await apiFetch(`/api/parcels/${createdParcel.parcelId}/route`, {
         method: 'POST',
         headers: {
@@ -223,13 +233,13 @@ export default function SingleParcelUpload({ onParcelCreated }) {
         </div>
 
         <div>
-          <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.85rem', fontWeight: 600 }}>Sender Contact *</label>
+          <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.85rem', fontWeight: 600 }}>Sender Contact * (10 Digits)</label>
           <input
             type="text"
             name="senderContact"
             value={formData.senderContact}
             onChange={handleChange}
-            placeholder="e.g. +91 9876543210"
+            placeholder="e.g. 9876543210"
             className={fieldErrors.senderContact ? 'input-error' : ''}
             style={{
               width: '100%',
@@ -271,13 +281,13 @@ export default function SingleParcelUpload({ onParcelCreated }) {
         </div>
 
         <div>
-          <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.85rem', fontWeight: 600 }}>Receiver Contact *</label>
+          <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.85rem', fontWeight: 600 }}>Receiver Contact * (10 Digits)</label>
           <input
             type="text"
             name="receiverContact"
             value={formData.receiverContact}
             onChange={handleChange}
-            placeholder="e.g. +91 9123456789"
+            placeholder="e.g. 9123456789"
             className={fieldErrors.receiverContact ? 'input-error' : ''}
             style={{
               width: '100%',
