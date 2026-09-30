@@ -5,6 +5,7 @@ export default function AdminSystemAlerts() {
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
+  const [isDismissed, setIsDismissed] = useState(false);
 
   const fetchAlerts = async () => {
     setLoading(true);
@@ -32,6 +33,21 @@ export default function AdminSystemAlerts() {
     return () => clearInterval(interval);
   }, []);
 
+  if (isDismissed) {
+    return (
+      <section className="card" style={{ marginBottom: '1.5rem', padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: '0.9rem', color: '#6b7280', fontWeight: 600 }}>Admin System Alerts (Hidden)</span>
+        <button
+          className="btn btn-secondary"
+          onClick={() => setIsDismissed(false)}
+          style={{ width: 'auto', padding: '0.25rem 0.65rem', fontSize: '0.8rem' }}
+        >
+          Show Alerts
+        </button>
+      </section>
+    );
+  }
+
   if (loading) {
     return (
       <section className="card" style={{ marginBottom: '1.5rem' }}>
@@ -43,7 +59,16 @@ export default function AdminSystemAlerts() {
   if (errorMsg) {
     return (
       <section className="card" style={{ borderColor: '#fca5a5', backgroundColor: '#fef2f2', marginBottom: '1.5rem' }}>
-        <h3 style={{ color: '#991b1b', margin: 0 }}>System Alerts Warning</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ color: '#991b1b', margin: 0 }}>System Alerts Warning</h3>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setIsDismissed(true)}
+            style={{ width: 'auto', padding: '0.2rem 0.5rem', fontSize: '0.8rem' }}
+          >
+            Hide
+          </button>
+        </div>
         <p style={{ color: '#991b1b', fontWeight: 600, marginTop: '0.5rem' }}>{errorMsg}</p>
       </section>
     );
@@ -53,13 +78,22 @@ export default function AdminSystemAlerts() {
     <section className="card" style={{ marginBottom: '1.5rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
         <h2 style={{ margin: 0, color: 'var(--primary-accent)' }}>Admin System Alerts (Last 1 Hour)</h2>
-        <button
-          className="btn btn-secondary"
-          onClick={fetchAlerts}
-          style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem' }}
-        >
-          Refresh Alerts
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button
+            className="btn btn-secondary"
+            onClick={fetchAlerts}
+            style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem' }}
+          >
+            Refresh Alerts
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setIsDismissed(true)}
+            style={{ padding: '0.25rem 0.6rem', fontSize: '0.8rem' }}
+          >
+            Hide Alerts
+          </button>
+        </div>
       </div>
 
       {alerts.length === 0 ? (
