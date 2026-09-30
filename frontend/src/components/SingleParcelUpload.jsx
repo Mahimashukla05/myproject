@@ -43,6 +43,24 @@ export default function SingleParcelUpload({ onParcelCreated }) {
       return;
     }
 
+    const nameRegex = /^[A-Za-z ]+$/;
+    if (!nameRegex.test(formData.senderName.trim())) {
+      setErrorMsg("Field 'senderName' must contain only English alphabets and spaces.");
+      return;
+    }
+    if (!nameRegex.test(formData.receiverName.trim())) {
+      setErrorMsg("Field 'receiverName' must contain only English alphabets and spaces.");
+      return;
+    }
+    if (!nameRegex.test(formData.origin.trim())) {
+      setErrorMsg("Field 'origin' must contain only English alphabets and spaces.");
+      return;
+    }
+    if (!nameRegex.test(formData.destination.trim())) {
+      setErrorMsg("Field 'destination' must contain only English alphabets and spaces.");
+      return;
+    }
+
     const weightNum = parseFloat(formData.weightKg);
     const valueNum = parseFloat(formData.valueEur);
 
