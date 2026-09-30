@@ -33,6 +33,20 @@ class AuthService:
     VALID_ROLES = ["admin", "operator"]
 
     @classmethod
+    def _validate_complexity(cls, val, field_name):
+        if not val or len(val) < 8:
+            return f"{field_name} must be at least 8 characters long."
+        if not re.search(r'[A-Z]', val):
+            return f"{field_name} must contain at least 1 uppercase letter."
+        if not re.search(r'[a-z]', val):
+            return f"{field_name} must contain at least 1 lowercase letter."
+        if not re.search(r'[0-9]', val):
+            return f"{field_name} must contain at least 1 number."
+        if not re.search(r'[^A-Za-z0-9]', val):
+            return f"{field_name} must contain at least 1 special character."
+        return None
+
+    @classmethod
     def register_user(cls, data):
         if not isinstance(data, dict):
             return {"success": False, "error": "Invalid request payload format."}, 400
@@ -70,11 +84,17 @@ class AuthService:
         if not re.match(r'^[^@]+@[^@]+\.[^@]+$', email):
             return {"success": False, "error": "Invalid email address format."}, 400
 
-        # 5. Password strength check (min 8 chars)
-        if len(password) < 8:
-            return {"success": False, "error": "Password must be at least 8 characters long."}, 400
+        # 5. Username complexity check (min 8 chars, 1 upper, 1 lower, 1 digit, 1 special)
+        err = cls._validate_complexity(username, "Username")
+        if err:
+            return {"success": False, "error": err}, 400
 
-        # 6. Role validation & Server-Side Admin Security Check
+        # 6. Password complexity check (min 8 chars, 1 upper, 1 lower, 1 digit, 1 special)
+        err = cls._validate_complexity(password, "Password")
+        if err:
+            return {"success": False, "error": err}, 400
+
+        # 7. Role validation & Server-Side Admin Security Check
         if requested_role not in cls.VALID_ROLES:
             return {"success": False, "error": "Invalid user role specified. Allowed roles are 'operator' and 'admin'."}, 400
 
@@ -87,7 +107,7 @@ class AuthService:
                 logger.warning(f"Unauthorized Admin registration attempt for username '{username}'")
                 return {"success": False, "error": "Invalid Admin registration key. Admin creation is restricted."}, 403
 
-        # 7. Uniqueness checks
+        # 8. Uniqueness checks
         if UserModel.find_by_username(username):
             return {"success": False, "error": "Username is already taken."}, 400
         if UserModel.find_by_email(email):
@@ -95,7 +115,7 @@ class AuthService:
         if UserModel.find_by_mobile(clean_mobile):
             return {"success": False, "error": "Mobile number is already registered."}, 400
 
-        # 8. Create User with hashed password
+        # 9. Create User with hashed password
         password_hash = generate_password_hash(password)
         user_doc = UserModel.create_user({
             "fullName": fullName,
