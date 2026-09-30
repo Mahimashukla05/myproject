@@ -170,7 +170,7 @@ export default function BatchUpload() {
                         <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.85rem' }}>
                           {res.status === 'SUCCESS' ? (
                             <span style={{ color: '#166534' }}>
-                              {res.department ? `Routed to: ${res.department}` : 'Parcel created (RECEIVED)'}
+                              {res.department ? `Routed to: ${res.department}${res.parcelStatus ? ` (${res.parcelStatus})` : ''}` : 'Parcel created (RECEIVED)'}
                             </span>
                           ) : (
                             <ul style={{ margin: 0, paddingLeft: '1rem', color: '#991b1b', fontSize: '0.8rem' }}>
