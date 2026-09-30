@@ -1,3 +1,4 @@
+import re
 import secrets
 import string
 import logging
@@ -23,6 +24,13 @@ class ParcelService:
             return f"Field '{field_name}' cannot be empty."
         if len(clean) > cls.MAX_TEXT_LENGTH:
             return f"Field '{field_name}' exceeds maximum allowed length of {cls.MAX_TEXT_LENGTH} characters."
+
+        # Strict character rule for name, origin, and destination fields:
+        # Only English alphabets (A-Z, a-z) and spaces are allowed.
+        if field_name in ["senderName", "receiverName", "origin", "destination"]:
+            if not re.match(r'^[A-Za-z ]+$', clean):
+                return f"Field '{field_name}' must contain only English alphabets and spaces."
+
         return None
 
     @classmethod
@@ -147,4 +155,3 @@ class ParcelService:
             }, 503
 
         return {"success": True, **result}, 200
-
