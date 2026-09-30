@@ -24,7 +24,6 @@ class BatchService:
         xml_str = file_bytes.decode('utf-8', errors='replace')
         upper_str = xml_str.upper()
 
-        # XXE Protection: Forbid DOCTYPE and ENTITY declarations completely
         if "<!DOCTYPE" in upper_str or "<!ENTITY" in upper_str:
             raise ValueError("Security Violation: XML containing DOCTYPE or ENTITY declarations is forbidden.")
 
@@ -113,7 +112,7 @@ class BatchService:
                 receiver_contact = (elem.findtext("receiverContact") or "").strip() or None
                 origin_val = (elem.findtext("origin") or "").strip() or None
 
-                dest_constructed = city if city else "Destination"
+                dest_constructed = city if city else None
                 destination_val = (elem.findtext("destination") or dest_constructed or "").strip() or None
 
                 item = {
@@ -154,7 +153,6 @@ class BatchService:
 
     @classmethod
     def parse_batch_file(cls, file_obj, filename, content_type):
-        # 1. Filename & Extension Check
         ext = ""
         if "." in filename:
             ext = "." + filename.rsplit(".", 1)[1].lower()
@@ -162,12 +160,10 @@ class BatchService:
         if ext not in cls.ALLOWED_EXTENSIONS:
             return (None, None), ({"success": False, "error": f"Unsupported file extension '{ext}'. Only .json and .xml files are allowed."}, 400)
 
-        # 2. MIME Type Check
         clean_mime = (content_type or "").split(";")[0].strip().lower()
         if clean_mime and clean_mime not in cls.ALLOWED_MIME_TYPES:
             return (None, None), ({"success": False, "error": f"Unsupported MIME type '{content_type}'."}, 400)
 
-        # 3. Read Content & Check Size
         file_bytes = file_obj.read()
         if len(file_bytes) == 0:
             return (None, None), ({"success": False, "error": "Batch file is empty."}, 400)
@@ -176,7 +172,6 @@ class BatchService:
             max_mb = Config.MAX_BATCH_FILE_SIZE_BYTES / (1024 * 1024)
             return (None, None), ({"success": False, "error": f"File size exceeds maximum allowed limit of {max_mb:.1f} MB."}, 413)
 
-        # 4. Parse Content based on extension
         parcels_list = []
         container_meta = None
         if ext == ".json":
@@ -205,7 +200,6 @@ class BatchService:
 
     @classmethod
     def process_batch(cls, file_obj, filename, content_type, user_id, user_info=None):
-        # Determine actor details for audit logging
         actor_id = str(user_id)
         actor_username = "operator"
         actor_role = "operator"
@@ -225,7 +219,6 @@ class BatchService:
             ext = "." + filename.rsplit(".", 1)[1].lower()
         file_type = ext if ext else "UNKNOWN"
 
-        # 1. Database Liveness Check
         db = Database.get_db()
         if db is None:
             logger.error("Batch processing failed: Database is currently unavailable.")
@@ -235,7 +228,6 @@ class BatchService:
                 "errorType": "TECHNICAL"
             }, 503
 
-        # 2. File Parsing & Pre-validation
         (parcels_list, container_meta), error_response = cls.parse_batch_file(file_obj, filename, content_type)
         if error_response:
             AuditModel.log_event(
@@ -277,7 +269,6 @@ class BatchService:
         results = []
         seen_parcel_ids = set()
 
-        # Helper to construct result payload item
         def make_result_item(index, parcel_id_str, item_dict, status, errors=None, error_type=None, department=None, parcel_status=None):
             res = {
                 "index": index + 1,
@@ -310,7 +301,6 @@ class BatchService:
                 res["errorType"] = error_type
             return res
 
-        # 3. Row-by-Row Independent Parcel Validation & Processing
         for index, item in enumerate(parcels_list):
             if not isinstance(item, dict):
                 failed += 1
@@ -326,7 +316,6 @@ class BatchService:
                 ))
                 continue
 
-            # Strip client-controlled system metadata fields if provided
             item_clean = {k: v for k, v in item.items() if k not in [
                 "department", "insuranceRequired", "insuranceStatus", "status",
                 "submittedBy", "submittedAt", "updatedAt", "failureReason"
@@ -342,22 +331,26 @@ class BatchService:
             else:
                 parcel_id_str = str(parcel_id).strip()
 
-            # B. Check missing required fields
-            if file_type == ".json":
-                required_fields = ["senderName", "senderContact", "receiverName", "receiverContact", "origin", "destination", "weightKg", "valueEur"]
-            else:
-                required_fields = ["receiverName", "destination", "weightKg", "valueEur"]
+            # B. Check missing / empty required fields for batch processing
+            required_fields = ["senderName", "senderContact", "receiverName", "receiverContact", "origin", "destination", "weightKg", "valueEur"]
 
             missing = [f for f in required_fields if f not in item_clean or item_clean[f] is None or (isinstance(item_clean[f], str) and not item_clean[f].strip())]
             if missing:
-                row_errors.append(f"Missing required fields: {', '.join(missing)}")
+                row_errors.append(f"Missing required non-empty fields: {', '.join(missing)}")
 
             # C. Validate string fields
             for fname in ["senderName", "senderContact", "receiverName", "receiverContact", "origin", "destination"]:
-                if fname in item_clean and item_clean[fname] is not None:
+                if fname in item_clean and item_clean[fname] is not None and isinstance(item_clean[fname], str) and item_clean[fname].strip():
                     err = ParcelService.validate_string_field(item_clean[fname], fname)
                     if err:
                         row_errors.append(err)
+
+            # Check Origin and Destination Same Rule
+            if item_clean.get("origin") and item_clean.get("destination"):
+                orig_clean = str(item_clean["origin"]).strip().lower()
+                dest_clean = str(item_clean["destination"]).strip().lower()
+                if orig_clean and dest_clean and orig_clean == dest_clean:
+                    row_errors.append("Origin and Destination cannot be the same.")
 
             # D. Validate numeric fields
             if "weightKg" in item_clean and item_clean["weightKg"] is not None:
@@ -376,7 +369,7 @@ class BatchService:
             elif parcel_id_str != f"ROW-{index+1}":
                 seen_parcel_ids.add(parcel_id_str)
 
-            # If validation errors occurred, mark row as failed and store in DB
+            # If validation errors occurred, mark row as failed and store all combined failure issues in DB
             if row_errors:
                 failed += 1
                 failure_msg = "; ".join(row_errors)
@@ -408,7 +401,6 @@ class BatchService:
                 continue
 
             try:
-                # Create parcel record (initial state: RECEIVED)
                 parcel_doc = ParcelModel.create_parcel({
                     "parcelId": parcel_id_str,
                     "senderName": item_clean.get("senderName"),
@@ -422,7 +414,6 @@ class BatchService:
                     "submittedBy": user_id
                 })
 
-                # Route the newly created parcel using existing RoutingService
                 route_res, route_code = RoutingService.route_parcel(parcel_id_str)
                 if route_code != 200 or not route_res or not route_res.get("success"):
                     err_msg = route_res.get("error") if isinstance(route_res, dict) else "Routing evaluation failed"
@@ -475,7 +466,6 @@ class BatchService:
                         error_type="TECHNICAL"
                     ))
 
-        # Determine batch outcome
         if failed == 0 and total > 0:
             outcome = "SUCCESS"
         elif successful > 0 and failed > 0:
